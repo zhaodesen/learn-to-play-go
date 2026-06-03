@@ -49,6 +49,11 @@ export interface Level {
   markers?: Marker[]
   /** 过关后的祝贺语 + 知识点小结 */
   successText?: string
+  /**
+   * 该关正解是"逃子/占点"类——落子不吃子。
+   * 仅供 data.test 放宽断言:此时不要求吃子,而是校验落子后己方获得更多气(真的逃出)。
+   */
+  expectNoCapture?: boolean
 }
 
 /** 一个章节 */
