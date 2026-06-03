@@ -1,0 +1,60 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - button "⌂ 围棋入门" [ref=e5] [cursor=pointer]
+    - navigation [ref=e6]:
+      - button "术语词典" [ref=e7] [cursor=pointer]
+      - button "设置" [ref=e8] [cursor=pointer]
+  - main [ref=e9]:
+    - paragraph [ref=e10]: 通过闯关,从零学会下围棋
+    - generic [ref=e11]:
+      - paragraph [ref=e12]:
+        - text: 已通关
+        - strong [ref=e13]: "0"
+        - text: / 8 关
+      - generic [ref=e14]:
+        - heading "第 1 章 · 认识围棋 从落子到第一次吃子" [level=2] [ref=e15]:
+          - text: 第 1 章 · 认识围棋
+          - generic [ref=e16]: 从落子到第一次吃子
+        - generic [ref=e17]:
+          - button "1 落下第一手 未通关" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]: "1"
+            - generic [ref=e20]: 落下第一手
+            - generic [ref=e21]: 未通关
+          - button "2 第一次吃子 🔒" [disabled] [ref=e22]:
+            - generic [ref=e23]: "2"
+            - generic [ref=e24]: 第一次吃子
+            - generic [ref=e25]: 🔒
+      - generic [ref=e26]:
+        - heading "第 2 章 · 提子入门 把对方的棋子吃掉" [level=2] [ref=e27]:
+          - text: 第 2 章 · 提子入门
+          - generic [ref=e28]: 把对方的棋子吃掉
+        - generic [ref=e29]:
+          - button "1 吃掉边上的子 🔒" [disabled] [ref=e30]:
+            - generic [ref=e31]: "1"
+            - generic [ref=e32]: 吃掉边上的子
+            - generic [ref=e33]: 🔒
+          - button "2 吃掉中间的子 🔒" [disabled] [ref=e34]:
+            - generic [ref=e35]: "2"
+            - generic [ref=e36]: 吃掉中间的子
+            - generic [ref=e37]: 🔒
+          - button "3 一串子一起吃 🔒" [disabled] [ref=e38]:
+            - generic [ref=e39]: "3"
+            - generic [ref=e40]: 一串子一起吃
+            - generic [ref=e41]: 🔒
+          - button "4 先吃哪一块? 🔒" [disabled] [ref=e42]:
+            - generic [ref=e43]: "4"
+            - generic [ref=e44]: 先吃哪一块?
+            - generic [ref=e45]: 🔒
+      - generic [ref=e46]:
+        - heading "第 3 章 · 吃子手筋 高效吃子的小诀窍" [level=2] [ref=e47]:
+          - text: 第 3 章 · 吃子手筋
+          - generic [ref=e48]: 高效吃子的小诀窍
+        - generic [ref=e49]:
+          - button "1 关门吃 🔒" [disabled] [ref=e50]:
+            - generic [ref=e51]: "1"
+            - generic [ref=e52]: 关门吃
+            - generic [ref=e53]: 🔒
+          - button "2 双打吃 🔒" [disabled] [ref=e54]:
+            - generic [ref=e55]: "2"
+            - generic [ref=e56]: 双打吃
+            - generic [ref=e57]: 🔒

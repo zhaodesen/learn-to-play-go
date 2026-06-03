@@ -1,0 +1,92 @@
+.goban {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.goban svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: manipulation;
+}
+
+.goban__bg {
+  fill: #e8b768;
+}
+
+.goban__line {
+  stroke: #2b1d0e;
+  stroke-width: 1;
+}
+
+.goban__star {
+  fill: #2b1d0e;
+}
+
+.goban__coord {
+  fill: #5c4326;
+  font-size: 11px;
+  font-family: system-ui, sans-serif;
+}
+
+.goban__marklabel {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+}
+
+.goban__lastmove {
+  pointer-events: none;
+}
+
+.stone {
+  filter: drop-shadow(0.5px 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.stone--preview {
+  opacity: 0.42;
+}
+
+.goban__hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+/* 这一手会提走的子:红色脉冲 */
+@keyframes capturePulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.85; }
+}
+.capture-ring {
+  animation: capturePulse 0.9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 教学推荐点:绿色呼吸圈 */
+@keyframes hintBreath {
+  0%, 100% { transform: scale(0.85); opacity: 0.5; }
+  50% { transform: scale(1.12); opacity: 0.95; }
+}
+.hint-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hintBreath 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 送叫吃 / 危险:黄色闪烁 */
+@keyframes dangerBlink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.danger-ring {
+  animation: dangerBlink 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.forbidden {
+  pointer-events: none;
+}

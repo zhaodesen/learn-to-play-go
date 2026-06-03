@@ -1,0 +1,190 @@
+.lp {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.lp__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.lp__back {
+  background: none;
+  border: none;
+  color: #3a7d54;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.lp__title {
+  font-weight: 700;
+  color: #3a2a16;
+  font-size: 0.95rem;
+}
+
+.teach {
+  background: #fffaf0;
+  border: 1px solid #ece0c8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: #4a3a24;
+  margin: 0 0 14px;
+}
+
+.term {
+  background: #fff2cc;
+  border: none;
+  border-bottom: 1.5px dashed #c79a3b;
+  color: #976611;
+  padding: 0 3px;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.term:hover {
+  background: #ffe39f;
+}
+
+.lp__feedback {
+  text-align: center;
+  min-height: 1.6em;
+  margin: 12px auto 4px;
+  max-width: 520px;
+  font-size: 0.9rem;
+  padding: 7px 12px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.lp__feedback--idle {
+  color: #6a5a42;
+}
+
+.lp__feedback--illegal {
+  color: #a86200;
+  background: #fff4e0;
+}
+
+.lp__feedback--wrong {
+  color: #c0392b;
+  background: #fdecea;
+}
+
+.lp__feedback--won {
+  color: #2e7d4f;
+  background: #e7f6ec;
+  font-weight: 600;
+}
+
+.lp__controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* 过关浮层 */
+.lp__win {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 12, 4, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 20px;
+}
+
+.lp__wincard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 26px 22px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  animation: winPop 0.25s ease-out;
+}
+
+@keyframes winPop {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.lp__stars {
+  font-size: 2.4rem;
+  color: #f5b301;
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+
+.lp__wincard p {
+  color: #4a3a24;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  margin: 8px 0 18px;
+}
+
+.lp__winbtns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 术语解释弹层(从底部滑入) */
+.term-pop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 60;
+}
+
+.term-pop__card {
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.term-pop__card h4 {
+  margin: 0 0 8px;
+  color: #3a2a16;
+  font-size: 1.1rem;
+}
+
+.term-pop__card p {
+  margin: 0 0 16px;
+  color: #5a4a32;
+  line-height: 1.75;
+  font-size: 0.92rem;
+}

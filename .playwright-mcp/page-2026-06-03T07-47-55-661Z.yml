@@ -1,0 +1,11 @@
+- generic [ref=e3]:
+  - heading "围棋入门 · 试玩棋盘" [level=1] [ref=e4]
+  - paragraph [ref=e5]: 临时自由对弈页(用于验证棋盘渲染与规则)。把鼠标移到空点上,看落子预览、提子高亮与禁入提示。
+  - generic [ref=e6]:
+    - generic [ref=e7]: 轮到 黑棋
+    - generic [ref=e9]: 黑提子 0
+    - generic [ref=e10]: 白提子 0
+  - img "围棋棋盘" [ref=e12]
+  - generic [ref=e109]:
+    - button "重新开始" [ref=e110] [cursor=pointer]
+    - button "显示坐标" [ref=e111] [cursor=pointer]
