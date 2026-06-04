@@ -54,6 +54,14 @@ export interface Level {
    * 仅供 data.test 放宽断言:此时不要求吃子,而是校验落子后己方获得更多气(真的逃出)。
    */
   expectNoCapture?: boolean
+  /**
+   * 死活关:正解是"做活/点杀的急所",落子当下并不吃子,胜负要靠死活搜索器判定。
+   * data.test 对这类关跳过通用断言,改用 lifedeath 求解器逐条校验:
+   * - verdict: 'kill' —— 目标(target 所指的子,通常是白)被黑先净杀;下对急所后仍是死。
+   * - verdict: 'live' —— 目标(玩家自己的黑块)做出两眼活;下对急所后对方再杀不掉。
+   * target 给目标块上任一颗子的坐标;急所点取 goal.points[0]。
+   */
+  lifeDeath?: { target: Point; verdict: 'kill' | 'live' }
 }
 
 /** 一个章节 */

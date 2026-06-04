@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { LEVELS } from './data'
-import { analyzeMove, createBoard, opponent, placeStone } from '../engine/board'
-import type { Board, Point } from '../engine/types'
+import { analyzeMove, createBoard, getCell, opponent, placeStone } from '../engine/board'
+import { attackerCanKill, isAlive } from '../engine/lifedeath'
+import type { Board, Point, Stone } from '../engine/types'
 import type { Level, SolutionNode } from './types'
 
 function build(level: Level): Board {
@@ -18,6 +19,7 @@ describe('关卡正解校验', () => {
       const board = build(level)
 
       if (level.goal.kind === 'tree') return // 多步题单独逐手核对(见下)
+      if (level.lifeDeath) return // 死活关用求解器单独校验(见下)
 
       let pt: Point | undefined
       if (level.goal.kind === 'points') pt = level.goal.points[0]
@@ -85,6 +87,57 @@ describe('多步正解树逐手核对', () => {
           ko = rr.koPoint ?? null
         }
         node = node.next
+      }
+    })
+  }
+})
+
+// 死活关:用 lifedeath 求解器穷举证明"急所唯一、下对则活/死成立"。
+// - kill 关:目标(白)在黑先时被净杀;下对急所后(轮到白)白仍死;下错点白则活。
+// - live 关:目标(黑,玩家自己)在白先时会被杀;下对急所后白再杀不掉(两眼活);下错点白能杀。
+describe('死活关求解器校验', () => {
+  const ldLevels = LEVELS.filter((l) => l.lifeDeath)
+
+  for (const level of ldLevels) {
+    it(`${level.id}「${level.title}」急所唯一且死活成立`, () => {
+      const ld = level.lifeDeath!
+      const board = build(level)
+      const targetColor = getCell(board, ld.target.x, ld.target.y) as Stone
+      const attacker = opponent(targetColor)
+      expect(level.goal.kind, 'lifeDeath 关应为 points 型').toBe('points')
+      const vital = (level.goal as { kind: 'points'; points: Point[] }).points[0]
+
+      const afterVital = (): Board => {
+        const r = placeStone(board, vital.x, vital.y, level.toPlay)
+        expect(r.ok && r.board, '急所应是合法落子').toBeTruthy()
+        return r.board!
+      }
+
+      if (ld.verdict === 'kill') {
+        // 黑先能净杀
+        expect(
+          attackerCanKill(board, ld.target.x, ld.target.y, attacker, attacker),
+          '黑先应能净杀目标',
+        ).toBe(true)
+        // 下对急所后,轮到白也救不活
+        const bv = afterVital()
+        expect(
+          attackerCanKill(bv, ld.target.x, ld.target.y, attacker, targetColor),
+          '下对急所后目标仍是死棋',
+        ).toBe(true)
+      } else {
+        // 不下这手则会被对方先点死
+        expect(
+          attackerCanKill(board, ld.target.x, ld.target.y, attacker, attacker),
+          '对方先手应能杀掉目标(所以必须抢救)',
+        ).toBe(true)
+        // 下对急所后做出两眼,对方再杀不掉
+        const bv = afterVital()
+        expect(isAlive(bv, ld.target.x, ld.target.y), '下对急所后应是两眼活棋').toBe(true)
+        expect(
+          attackerCanKill(bv, ld.target.x, ld.target.y, attacker, attacker),
+          '下对急所后对方应再也杀不掉',
+        ).toBe(false)
       }
     })
   }
