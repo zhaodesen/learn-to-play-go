@@ -17,16 +17,56 @@ function orthoNeighbors(size: number, x: number, y: number): Point[] {
   return pts
 }
 
-/**
- * 一个点是否是 color 的"真眼":该点为空,且其所有在盘内的上下左右邻居都是 color 的子。
- * (只看直邻、不严格判对角假眼;关卡棋形会保证眼的边角结实,不出现假眼陷阱。)
- */
-export function isEyeFor(board: Board, p: Point, color: Stone): boolean {
-  if (getCell(board, p.x, p.y) !== null) return false
+function diagNeighbors(size: number, x: number, y: number): Point[] {
+  const pts: Point[] = []
+  for (const [dx, dy] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ]) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx >= 0 && nx < size && ny >= 0 && ny < size) pts.push({ x: nx, y: ny })
+  }
+  return pts
+}
+
+/** 该点的所有在盘内直邻是否都是 color(眼的"形")。 */
+function orthoAllFriendly(board: Board, p: Point, color: Stone): boolean {
   for (const n of orthoNeighbors(board.size, p.x, p.y)) {
     if (getCell(board, n.x, n.y) !== color) return false
   }
   return true
+}
+
+/**
+ * 一个点是否是 color 的**真眼**(而非假眼)。判定:
+ *  1. 该点为空,且所有在盘内的直邻都是 color 的子(眼的基本形);
+ *  2. 对角控制:统计在盘内的对角点中"不归 color 掌控"的个数 bad —— 对角是敌子、
+ *     或是空点且其直邻并非全为 color(即不是一只己方眼)都算 bad;
+ *     角/边(在盘内对角 < 4 个)要求 bad === 0,正中(4 个对角)允许 bad ≤ 1。
+ * 这条对角规则能把"假眼"判出来,同时不会把弯三那种**相邻共享对角的两只真眼**误杀
+ * (彼此的空对角点其直邻全是己方,算受控)。这是一只眼"做得活/破不掉"的保守证书。
+ */
+export function isEyeFor(board: Board, p: Point, color: Stone): boolean {
+  if (getCell(board, p.x, p.y) !== null) return false
+  if (!orthoAllFriendly(board, p, color)) return false
+
+  const diags = diagNeighbors(board.size, p.x, p.y)
+  let bad = 0
+  for (const d of diags) {
+    const c = getCell(board, d.x, d.y)
+    if (c === color) continue // 己子,受控
+    if (c !== null) {
+      bad++ // 敌子
+      continue
+    }
+    // 空对角:若它本身被己方直邻包住(也是一只己方眼形)则受控,否则算 bad
+    if (!orthoAllFriendly(board, d, color)) bad++
+  }
+  const onEdge = diags.length < 4
+  return onEdge ? bad === 0 : bad <= 1
 }
 
 /** 目标块拥有的真眼数(去重)。 */
@@ -88,6 +128,8 @@ interface KillState {
   inPath: Set<string>
   attacker: Stone
   targetRef: Point
+  /** 防御性兜底:访问节点数上限,绝不挂死(正常死活题远到不了) */
+  budget: number
 }
 
 function key(board: Board, toMove: Stone): string {
@@ -99,6 +141,12 @@ function key(board: Board, toMove: Stone): string {
  * 落子点(眼位区域)在每个节点按当前盘面**动态重算** —— 这样"扑入 + 回提"
  * 让眼位点重新变空后,双方仍能在新空点上继续手筋。
  * 返回 true = 攻方能净杀(目标死);false = 杀不掉(目标活/攻方无法取得进展)。
+ *
+ * 关于缓存(刻意不做):死活搜索是图历史相关(GHI)的 —— 同一盘面经不同祖先
+ * 路径到达,结论会因"路径判重(劫/循环提子)"而不同。置换表只能正确缓存与路径
+ * 无关的"终局点"(被提/两眼/无气),而那些本就秒算;掺了路径判重的内部结论一旦
+ * 缓存就会被另一条路径错误复用(实测会把"直三黑先净杀"误判成活)。眼位区域有
+ * REGION_CAP 上限、又有 budget 硬节点上限,搜索恒定廉价,无需缓存。
  */
 function killSearch(board: Board, toMove: Stone, st: KillState): boolean {
   const defender = opponent(st.attacker)
@@ -107,12 +155,10 @@ function killSearch(board: Board, toMove: Stone, st: KillState): boolean {
   // 目标已有两只真眼 → 活,杀不掉
   if (isAlive(board, st.targetRef.x, st.targetRef.y)) return false
 
-  // 路径上的重复局面:攻方无法靠循环取得进展 → 判作杀不掉(活)。
-  // 注:这里只用"当前搜索路径"判重、不做跨路径的置换表缓存 —— 死活搜索是
-  // 图历史相关的(graph-history interaction),缓存路径相关的结论会出错;
-  // 眼位区域很小(≤ ~6 点),不缓存也足够快。
+  // 路径上的重复局面 / 超出节点预算 → 攻方无法取得进展,判作"杀不掉"(保守偏活)
   const k = key(board, toMove)
   if (st.inPath.has(k)) return false
+  if (st.budget-- <= 0) return false
   st.inPath.add(k)
 
   // 当前目标块被围出的眼位空点(动态);若已不被围死则攻方杀不净
@@ -171,6 +217,7 @@ export function attackerCanKill(
     inPath: new Set(),
     attacker,
     targetRef: { x: tx, y: ty },
+    budget: 200000,
   }
   return killSearch(board, toMove, st)
 }

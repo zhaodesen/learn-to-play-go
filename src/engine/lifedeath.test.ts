@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createBoard } from './board'
-import { attackerCanKill, isAlive, trueEyeCount } from './lifedeath'
+import { attackerCanKill, isAlive, isEyeFor, trueEyeCount } from './lifedeath'
 import type { Board, Stone } from './types'
 
 type S = { x: number; y: number; c: Stone }
@@ -53,5 +53,77 @@ describe('死活求解器自检', () => {
   it('直四 → 活棋(黑先也杀不掉)', () => {
     const { board, whiteRep } = topEyespace(4)
     expect(attackerCanKill(board, whiteRep.x, whiteRep.y, 'B', 'B')).toBe(false)
+  })
+})
+
+describe('真眼 / 假眼判定(对角规则)', () => {
+  // 正中的眼点 (4,4):直邻全黑;对角按需摆放
+  function centerEye(diag: S[]): Board {
+    return mk([
+      { x: 3, y: 4, c: 'B' }, { x: 5, y: 4, c: 'B' }, { x: 4, y: 3, c: 'B' }, { x: 4, y: 5, c: 'B' },
+      ...diag,
+    ])
+  }
+  const D = { tl: { x: 3, y: 3 }, tr: { x: 5, y: 3 }, bl: { x: 3, y: 5 }, br: { x: 5, y: 5 } }
+
+  it('正中:四角全己方 → 真眼', () => {
+    const b = centerEye([
+      { ...D.tl, c: 'B' }, { ...D.tr, c: 'B' }, { ...D.bl, c: 'B' }, { ...D.br, c: 'B' },
+    ])
+    expect(isEyeFor(b, { x: 4, y: 4 }, 'B')).toBe(true)
+  })
+
+  it('正中:仅一个角是敌子 → 仍是真眼(允许 1 个坏角)', () => {
+    const b = centerEye([
+      { ...D.tl, c: 'W' }, { ...D.tr, c: 'B' }, { ...D.bl, c: 'B' }, { ...D.br, c: 'B' },
+    ])
+    expect(isEyeFor(b, { x: 4, y: 4 }, 'B')).toBe(true)
+  })
+
+  it('正中:两个角是敌子 → 假眼', () => {
+    const b = centerEye([
+      { ...D.tl, c: 'W' }, { ...D.br, c: 'W' }, { ...D.tr, c: 'B' }, { ...D.bl, c: 'B' },
+    ])
+    expect(isEyeFor(b, { x: 4, y: 4 }, 'B')).toBe(false)
+  })
+
+  it('边/角:任一对角不归己方 → 假眼(边上要求更严)', () => {
+    // 顶边眼点 (4,0):直邻 (3,0)(5,0)(4,1) 全黑;在盘内对角 (3,1)(5,1)
+    const real = mk([
+      { x: 3, y: 0, c: 'B' }, { x: 5, y: 0, c: 'B' }, { x: 4, y: 1, c: 'B' },
+      { x: 3, y: 1, c: 'B' }, { x: 5, y: 1, c: 'B' },
+    ])
+    expect(isEyeFor(real, { x: 4, y: 0 }, 'B')).toBe(true)
+    const fake = mk([
+      { x: 3, y: 0, c: 'B' }, { x: 5, y: 0, c: 'B' }, { x: 4, y: 1, c: 'B' },
+      { x: 3, y: 1, c: 'W' }, { x: 5, y: 1, c: 'B' }, // 一个对角是敌子 → 边上即假眼
+    ])
+    expect(isEyeFor(fake, { x: 4, y: 0 }, 'B')).toBe(false)
+  })
+
+  it('一真眼 + 一假眼 ≠ 两眼活(旧的"只看直邻"会误判为活)', () => {
+    // 黑块顶边围出两个直邻全封的空:(1,0) 是真眼,(3,0) 因对角 (4,1) 是白 → 假眼。
+    const b = mk([
+      { x: 0, y: 0, c: 'B' }, { x: 2, y: 0, c: 'B' }, { x: 4, y: 0, c: 'B' },
+      { x: 0, y: 1, c: 'B' }, { x: 1, y: 1, c: 'B' }, { x: 2, y: 1, c: 'B' }, { x: 3, y: 1, c: 'B' },
+      { x: 4, y: 1, c: 'W' }, // 顶在 (3,0) 的对角上 → (3,0) 成假眼
+    ])
+    expect(isEyeFor(b, { x: 1, y: 0 }, 'B')).toBe(true) // 真眼
+    expect(isEyeFor(b, { x: 3, y: 0 }, 'B')).toBe(false) // 假眼
+    expect(trueEyeCount(b, 1, 1)).toBe(1)
+    expect(isAlive(b, 1, 1)).toBe(false) // 只有一只真眼 → 不算活
+  })
+
+  it('弯三两眼:相邻共享的空对角点不误判为假眼', () => {
+    // 角部黑弯三做活:眼位 (0,0) 已被己方占,留 (1,0)(0,1) 两眼,彼此互为空对角
+    const b = mk([
+      { x: 0, y: 0, c: 'B' }, { x: 1, y: 1, c: 'B' }, { x: 2, y: 0, c: 'B' },
+      { x: 2, y: 1, c: 'B' }, { x: 0, y: 2, c: 'B' }, { x: 1, y: 2, c: 'B' },
+    ])
+    // (1,0):直邻 (0,0)B (2,0)B (1,1)B;空对角 (0,1) 其直邻全黑 → 受控 → 真眼
+    expect(isEyeFor(b, { x: 1, y: 0 }, 'B')).toBe(true)
+    expect(isEyeFor(b, { x: 0, y: 1 }, 'B')).toBe(true)
+    expect(trueEyeCount(b, 1, 1)).toBe(2)
+    expect(isAlive(b, 1, 1)).toBe(true)
   })
 })
