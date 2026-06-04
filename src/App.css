@@ -81,6 +81,27 @@
   text-shadow: 0 0 10px rgba(217, 177, 103, 0.5);
 }
 
+/* 音乐开关图标 */
+.appbar__music {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--ink-line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.appbar__music--on {
+  border-color: var(--gold-deep);
+  background: rgba(217, 177, 103, 0.12);
+  box-shadow: 0 0 12px rgba(217, 177, 103, 0.3);
+}
+
 /* 太极 */
 .taiji { display: block; }
 .taiji--spin { animation: taijiSpin 3.2s linear infinite; }
@@ -187,9 +208,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 14px;
-  padding: calc(env(safe-area-inset-top) + 72px) 28px
+  padding: calc(env(safe-area-inset-top) + 110px) 28px
     calc(env(safe-area-inset-bottom) + 48px);
   text-align: center;
   overflow: hidden;

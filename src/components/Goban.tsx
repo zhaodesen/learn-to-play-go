@@ -373,9 +373,17 @@ export function Goban(props: GobanProps) {
           })}
       </svg>
 
-      {/* 二次确认条:仅在已点选虚影时出现 */}
+      {/* 二次确认弹框:浮在所点棋子的正上方(靠近顶行时翻到下方) */}
       {pending && (
-        <div className={`confirmbar confirmbar--${confirmTone}`}>
+        <div
+          className={`confirmbar confirmbar--${confirmTone}${
+            pending.y <= 1 ? ' confirmbar--below' : ''
+          }`}
+          style={{
+            left: `${(px(pending.x) / dim) * 100}%`,
+            top: `${(px(pending.y) / dim) * 100}%`,
+          }}
+        >
           <div className="confirmbar__info">
             <span className="confirmbar__coord">{coordName(size, pending)}</span>
             <span className="confirmbar__hint">{confirmHint}</span>

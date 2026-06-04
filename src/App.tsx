@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MapView } from './components/MapView'
 import { LevelPlayer } from './components/LevelPlayer'
-import { PlayView } from './components/PlayView'
 import { GlossaryView } from './components/GlossaryView'
-import { SettingsView } from './components/SettingsView'
 import { Taiji } from './components/Taiji'
 import { getLevel, nextLevel } from './levels/data'
 import { sound } from './audio/sound'
@@ -14,14 +12,10 @@ import './App.css'
 type Route =
   | { v: 'map' }
   | { v: 'level'; id: string }
-  | { v: 'play' }
   | { v: 'glossary' }
-  | { v: 'settings' }
 
 const ACTIONS: { v: Route['v']; label: string; glyph: string }[] = [
-  { v: 'play', label: '对弈', glyph: '棋' },
   { v: 'glossary', label: '词典', glyph: '典' },
-  { v: 'settings', label: '设置', glyph: '设' },
 ]
 
 function App() {
@@ -32,6 +26,12 @@ function App() {
   useEffect(() => {
     sound.configure({ sfx: data.settings.sfx, volume: data.settings.volume })
   }, [data.settings])
+
+  // 背景音乐:仅在关卡内、且音乐开启时播放
+  useEffect(() => {
+    if (route.v === 'level' && data.settings.music) sound.startBgm()
+    else sound.stopBgm()
+  }, [route.v, data.settings.music])
 
   function handleWin(levelId: string, stars: number) {
     setData((d) => recordClear(d, levelId, stars))
@@ -44,6 +44,11 @@ function App() {
   function go(v: Route['v']) {
     sound.play('click')
     setRoute({ v } as Route)
+  }
+
+  function toggleMusic() {
+    sound.play('click')
+    changeSettings({ music: !data.settings.music })
   }
 
   const level = route.v === 'level' ? getLevel(route.id) : undefined
@@ -75,6 +80,15 @@ function App() {
                 <span className="appbar__act-label">{a.label}</span>
               </button>
             ))}
+            <button
+              type="button"
+              className={`appbar__music${data.settings.music ? ' appbar__music--on' : ''}`}
+              onClick={toggleMusic}
+              aria-label={data.settings.music ? '关闭音乐' : '开启音乐'}
+              title={data.settings.music ? '关闭音乐' : '开启音乐'}
+            >
+              {data.settings.music ? '🎵' : '🔇'}
+            </button>
           </nav>
         )}
       </header>
@@ -108,13 +122,7 @@ function App() {
           <p className="tagline">找不到这一关。</p>
         )}
 
-        {route.v === 'play' && <PlayView onExit={() => setRoute({ v: 'map' })} />}
-
         {route.v === 'glossary' && <GlossaryView />}
-
-        {route.v === 'settings' && (
-          <SettingsView settings={data.settings} onChange={changeSettings} />
-        )}
       </main>
     </div>
   )

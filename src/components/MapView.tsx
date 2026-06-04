@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CHAPTERS, LEVELS } from '../levels/data'
 import { createBoard } from '../engine/board'
+import { toCnNum } from '../utils/cn'
 import { Goban } from './Goban'
 import type { Board } from '../engine/types'
 import type { Level } from '../levels/types'
@@ -16,21 +17,6 @@ function previewBoard(level: Level): Board {
   const cells = createBoard(level.boardSize).cells.slice()
   for (const s of level.stones) cells[s.y * level.boardSize + s.x] = s.c
   return { size: level.boardSize, cells }
-}
-
-function goalTeaser(level: Level): string {
-  switch (level.goal.kind) {
-    case 'place-any-legal':
-      return '落下你的第一子'
-    case 'capture':
-      return '找出只剩一口气的子，吃掉它'
-    case 'points':
-      return '想一想，关键的一手在哪'
-    case 'tree':
-      return '连续手筋，追着把对方吃掉'
-    default:
-      return '想一想这一手'
-  }
 }
 
 export function MapView({ data, onOpen }: MapViewProps) {
@@ -126,19 +112,36 @@ export function MapView({ data, onOpen }: MapViewProps) {
       window.setTimeout(() => { wheelLock = false }, 520)
     }
 
+    // 跟手拖动:手指移动时实时改 scrollTop,页面同步滑动;松手后按位移吸附到目标页
     let startY = 0
     let startT = 0
+    let baseTop = 0
+    let dragging = false
     const onTouchStart = (e: TouchEvent) => {
+      if (animating.current) return
+      dragging = true
       startY = e.touches[0].clientY
       startT = Date.now()
+      baseTop = scroller.scrollTop
     }
-    const onTouchMove = (e: TouchEvent) => e.preventDefault()
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging) return
+      e.preventDefault()
+      const dy = startY - e.touches[0].clientY
+      // 直接跟手(overflow:hidden 容器写 scrollTop 有效);浏览器自动夹在 [0,max]
+      scroller.scrollTop = baseTop + dy
+    }
     const onTouchEnd = (e: TouchEvent) => {
+      if (!dragging) return
+      dragging = false
       const dy = startY - e.changedTouches[0].clientY
       const dt = Date.now() - startT
-      // 位移够大、或快速轻扫
-      if (Math.abs(dy) > 50 || (Math.abs(dy) > 18 && dt < 250)) {
+      const pageH = scroller.clientHeight || 1
+      // 拖过半屏、或快速轻扫 → 翻一页;否则回弹到当前页
+      if (Math.abs(dy) > pageH * 0.25 || (Math.abs(dy) > 18 && dt < 250)) {
         step(dy > 0 ? 1 : -1)
+      } else {
+        goTo(activeRef.current)
       }
     }
 
@@ -198,13 +201,9 @@ export function MapView({ data, onOpen }: MapViewProps) {
               isUnlocked ? '' : ' feed__page--locked'
             }`}
           >
-            <span className="feed__bignum">
-              {String(i + 1).padStart(2, '0')}
-            </span>
+            <span className="feed__bignum">{toCnNum(i + 1)}</span>
 
-            <div className="feed__chip">
-              第 {level.chapterIndex + 1} 章 · {level.chapterTitle}
-            </div>
+            <h2 className="feed__title">{level.title}</h2>
 
             <div className={`feed__board${isUnlocked ? '' : ' feed__board--blur'}`}>
               <Goban
@@ -214,17 +213,6 @@ export function MapView({ data, onOpen }: MapViewProps) {
                 showSmartHints={false}
               />
               {!isUnlocked && <span className="feed__lock">🔒</span>}
-            </div>
-
-            <h2 className="feed__title">{level.title}</h2>
-            <p className="feed__teaser">{goalTeaser(level)}</p>
-
-            <div className="feed__stars">
-              {!isUnlocked
-                ? '通关上一关后解锁'
-                : done
-                  ? '★'.repeat(rec.stars) + '☆'.repeat(3 - rec.stars)
-                  : '未通关'}
             </div>
 
             <button

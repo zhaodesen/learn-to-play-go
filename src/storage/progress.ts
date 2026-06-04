@@ -17,7 +17,7 @@ export interface ProgressData {
 }
 
 const KEY = 'ltpg.progress.v1'
-const DEFAULT_SETTINGS: Settings = { sfx: true, music: false, volume: 0.6 }
+const DEFAULT_SETTINGS: Settings = { sfx: true, music: true, volume: 0.6 }
 
 function freshData(): ProgressData {
   return { levels: {}, settings: { ...DEFAULT_SETTINGS } }

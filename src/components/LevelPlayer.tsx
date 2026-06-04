@@ -5,6 +5,7 @@ import { useLevelGame } from '../game/useLevelGame'
 import { sound } from '../audio/sound'
 import { lookupTerm } from '../data/glossary'
 import { scoreArea } from '../engine/score'
+import { toCnNum } from '../utils/cn'
 import type { Level } from '../levels/types'
 import './LevelPlayer.css'
 
@@ -67,7 +68,7 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
           ← 返回关卡
         </button>
         <span className="lp__title">
-          {level.chapterTitle} · 第 {level.index} 关 · {level.title}
+          {level.chapterTitle} · 第{toCnNum(level.index)}关 · {level.title}
         </span>
       </div>
 

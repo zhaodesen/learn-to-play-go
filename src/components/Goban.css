@@ -1,4 +1,5 @@
 .goban {
+  position: relative;
   width: 100%;
   max-width: 520px;
   margin: 0 auto;
@@ -127,30 +128,58 @@
 
 .forbidden { pointer-events: none; }
 
-/* ============ 二次确认条 ============ */
+/* ============ 二次确认弹框(浮在所点棋子上方) ============ */
 .confirmbar {
+  position: absolute;
+  z-index: 6;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 12px auto 0;
-  max-width: 520px;
-  padding: 10px 12px 10px 16px;
+  flex-direction: column;
+  gap: 8px;
+  width: max-content;
+  max-width: 220px;
+  padding: 9px 11px;
   border-radius: 14px;
   background: linear-gradient(180deg, var(--ink-650), var(--ink-700));
   border: 1px solid var(--ink-line);
-  box-shadow: var(--shadow-card);
-  animation: barRise 0.18s ease-out;
+  box-shadow: var(--shadow-card), 0 8px 22px rgba(0, 0, 0, 0.5);
+  /* 默认浮到棋子上方:水平居中于该列,底边略高于棋子 */
+  transform: translate(-50%, calc(-100% - 14px));
+  animation: barRise 0.16s ease-out;
+}
+/* 靠近顶行时翻到棋子下方,避免被标题栏遮挡 */
+.confirmbar--below {
+  transform: translate(-50%, 18px);
+}
+/* 指向棋子的小三角 */
+.confirmbar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--ink-700);
+  border-right: 1px solid var(--ink-line);
+  border-bottom: 1px solid var(--ink-line);
+  transform: translateX(-50%) rotate(45deg);
+}
+.confirmbar--below::after {
+  bottom: auto;
+  top: -6px;
+  border: none;
+  border-left: 1px solid var(--ink-line);
+  border-top: 1px solid var(--ink-line);
+  background: var(--ink-650);
 }
 @keyframes barRise {
-  from { transform: translateY(8px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .confirmbar__info {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
 }
 .confirmbar__coord {
@@ -170,14 +199,15 @@
 .confirmbar__btns {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
 }
 .confirmbar__btn {
+  flex: 1;
   border: none;
   border-radius: 11px;
-  padding: 11px 18px;
-  font-size: 0.95rem;
+  padding: 9px 14px;
+  font-size: 0.92rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition: transform 0.08s, filter 0.15s;
 }
