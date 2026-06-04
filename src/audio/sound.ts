@@ -8,15 +8,21 @@ interface SoundSettings {
   volume: number
 }
 
+// 对局背景音乐:Erik Satie - Gymnopédie No.1(演奏:Kevin MacLeod,CC BY 3.0)
+// 舒缓钢琴,循环播放;放在 public/bgm/ 下,运行时按需加载。
+const BGM_SRC = `${import.meta.env.BASE_URL}bgm/gymnopedie-no1.mp3`
+const BGM_VOLUME = 0.5 // 背景音乐基准音量(再乘以设置里的总音量)
+
 class SoundEngine {
   private ctx: AudioContext | null = null
   private settings: SoundSettings = { sfx: true, volume: 0.6 }
-  private bgmTimer: number | null = null
+  private bgm: HTMLAudioElement | null = null
   private bgmOn = false
-  private bgmStep = 0
 
   configure(partial: Partial<SoundSettings>): void {
     this.settings = { ...this.settings, ...partial }
+    // 实时跟随音量设置
+    if (this.bgm) this.bgm.volume = BGM_VOLUME * this.settings.volume
   }
 
   /** 浏览器要求音频在用户交互后才能启动,首次点击时会自动 resume */
@@ -91,58 +97,47 @@ class SoundEngine {
   }
 
   // ===== 背景音乐 =====
-  // 用五声音阶(宫商角徵羽)缓慢琶音循环,营造轻松禅意氛围;纯合成,无素材文件。
-  // 不受 sfx 开关影响,由设置里的 music 单独控制。
+  // 循环播放纯钢琴曲(mp3),不受 sfx 开关影响,由设置里的 music 单独控制。
 
-  /** 一个绵长柔和的音符:慢起慢落,正弦波叠加,音量偏低 */
-  private softTone(freq: number, dur: number, peak: number): void {
-    const ctx = this.ctx
-    if (!ctx) return
-    const start = ctx.currentTime + 0.02
-    const v = Math.max(0.0001, peak * this.settings.volume)
-    const make = (f: number, p: number, type: OscillatorType) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = type
-      osc.frequency.setValueAtTime(f, start)
-      gain.gain.setValueAtTime(0.0001, start)
-      gain.gain.exponentialRampToValueAtTime(p, start + dur * 0.25)
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(start)
-      osc.stop(start + dur + 0.05)
+  private ensureBgm(): HTMLAudioElement | null {
+    if (typeof Audio === 'undefined') return null
+    if (!this.bgm) {
+      const el = new Audio(BGM_SRC)
+      el.loop = true
+      el.preload = 'auto'
+      el.volume = BGM_VOLUME * this.settings.volume
+      this.bgm = el
     }
-    make(freq, v, 'sine')
-    make(freq * 2, v * 0.18, 'triangle') // 一点泛音增加质感
+    return this.bgm
   }
 
   startBgm(): void {
     if (this.bgmOn) return
-    const ctx = this.ensure()
-    if (!ctx) return
+    const el = this.ensureBgm()
+    if (!el) return
     this.bgmOn = true
-    // 羽调式五声音阶,横跨两个八度,旋律线缓慢上下行
-    const scale = [
-      330, 392, 440, 523, 587,
-      659, 587, 523, 440, 392,
-    ]
-    const tick = () => {
-      if (!this.bgmOn) return
-      const note = scale[this.bgmStep % scale.length]
-      this.softTone(note, 2.0, 0.16)
-      // 每隔几拍补一个低音根音,垫住氛围
-      if (this.bgmStep % 4 === 0) this.softTone(165, 3.2, 0.1)
-      this.bgmStep++
-      this.bgmTimer = window.setTimeout(tick, 1600)
+    el.volume = BGM_VOLUME * this.settings.volume
+    // 浏览器可能因未交互而拒绝自动播放;被拒时挂一次性手势监听,下次点击/触摸再补播
+    void el.play().catch(() => this.armResumeOnGesture())
+  }
+
+  /** 自动播放被拒时:监听下一次用户手势,补播一次(若届时仍需要) */
+  private armResumeOnGesture(): void {
+    if (typeof window === 'undefined') return
+    const resume = () => {
+      window.removeEventListener('pointerdown', resume)
+      window.removeEventListener('keydown', resume)
+      if (this.bgmOn && this.bgm) void this.bgm.play().catch(() => {})
     }
-    tick()
+    window.addEventListener('pointerdown', resume, { once: true })
+    window.addEventListener('keydown', resume, { once: true })
   }
 
   stopBgm(): void {
     this.bgmOn = false
-    if (this.bgmTimer !== null) {
-      window.clearTimeout(this.bgmTimer)
-      this.bgmTimer = null
+    if (this.bgm) {
+      this.bgm.pause()
+      this.bgm.currentTime = 0
     }
   }
 }

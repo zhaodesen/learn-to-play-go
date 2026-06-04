@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MapView } from './components/MapView'
 import { LevelPlayer } from './components/LevelPlayer'
-import { GlossaryView } from './components/GlossaryView'
-import { Taiji } from './components/Taiji'
 import { getLevel, nextLevel } from './levels/data'
 import { sound } from './audio/sound'
 import { loadProgress, recordClear, updateSettings } from './storage/progress'
@@ -12,11 +10,6 @@ import './App.css'
 type Route =
   | { v: 'map' }
   | { v: 'level'; id: string }
-  | { v: 'glossary' }
-
-const ACTIONS: { v: Route['v']; label: string; glyph: string }[] = [
-  { v: 'glossary', label: '词典', glyph: '典' },
-]
 
 function App() {
   const [route, setRoute] = useState<Route>({ v: 'map' })
@@ -41,11 +34,6 @@ function App() {
     setData((d) => updateSettings(d, partial))
   }
 
-  function go(v: Route['v']) {
-    sound.play('click')
-    setRoute({ v } as Route)
-  }
-
   function toggleMusic() {
     sound.play('click')
     changeSettings({ music: !data.settings.music })
@@ -57,41 +45,19 @@ function App() {
 
   return (
     <div className={`app${immersive ? ' app--immersive' : ''}${feed ? ' app--feed' : ''}`}>
-      <header className="appbar">
-        <button
-          type="button"
-          className="appbar__brand"
-          onClick={() => setRoute({ v: 'map' })}
-        >
-          <Taiji size={30} />
-          <span className="appbar__title">墨韵围棋</span>
-        </button>
-
-        {!immersive && (
-          <nav className="appbar__actions">
-            {ACTIONS.map((a) => (
-              <button
-                key={a.v}
-                type="button"
-                className={`appbar__act${route.v === a.v ? ' appbar__act--on' : ''}`}
-                onClick={() => go(a.v)}
-              >
-                <span className="appbar__act-glyph">{a.glyph}</span>
-                <span className="appbar__act-label">{a.label}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`appbar__music${data.settings.music ? ' appbar__music--on' : ''}`}
-              onClick={toggleMusic}
-              aria-label={data.settings.music ? '关闭音乐' : '开启音乐'}
-              title={data.settings.music ? '关闭音乐' : '开启音乐'}
-            >
-              {data.settings.music ? '🎵' : '🔇'}
-            </button>
-          </nav>
-        )}
-      </header>
+      {!immersive && (
+        <nav className="appbar__actions">
+          <button
+            type="button"
+            className={`appbar__music${data.settings.music ? ' appbar__music--on' : ''}`}
+            onClick={toggleMusic}
+            aria-label={data.settings.music ? '关闭音乐' : '开启音乐'}
+            title={data.settings.music ? '关闭音乐' : '开启音乐'}
+          >
+            {data.settings.music ? '🎵' : '🔇'}
+          </button>
+        </nav>
+      )}
 
       <main className="main">
         {route.v === 'map' && (
@@ -121,8 +87,6 @@ function App() {
         {route.v === 'level' && !level && (
           <p className="tagline">找不到这一关。</p>
         )}
-
-        {route.v === 'glossary' && <GlossaryView />}
       </main>
     </div>
   )

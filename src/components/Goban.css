@@ -104,15 +104,27 @@
   pointer-events: none;
 }
 
-/* 教学推荐点:碧玉呼吸圈 */
+/* 教学推荐点:碧玉呼吸圈 + 光晕,醒目 */
 @keyframes hintBreath {
-  0%, 100% { transform: scale(0.85); opacity: 0.5; }
-  50% { transform: scale(1.12); opacity: 0.95; }
+  0%, 100% { transform: scale(0.92); opacity: 0.85; }
+  50% { transform: scale(1.18); opacity: 1; }
 }
 .hint-ring {
   transform-box: fill-box;
   transform-origin: center;
-  animation: hintBreath 1.6s ease-in-out infinite;
+  animation: hintBreath 1.3s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px var(--jade)) drop-shadow(0 0 9px var(--jade));
+  pointer-events: none;
+}
+@keyframes hintHalo {
+  0%, 100% { transform: scale(0.8); opacity: 0.25; }
+  50% { transform: scale(1.35); opacity: 0.5; }
+}
+.hint-halo {
+  fill: var(--jade);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hintHalo 1.3s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -128,17 +140,16 @@
 
 .forbidden { pointer-events: none; }
 
-/* ============ 二次确认弹框(浮在所点棋子上方) ============ */
+/* ============ 二次确认弹框(浮在所点棋子上方):仅 ✕ / ✓ 两个图标 ============ */
 .confirmbar {
   position: absolute;
   z-index: 6;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  gap: 10px;
   width: max-content;
-  max-width: 220px;
-  padding: 9px 11px;
-  border-radius: 14px;
+  padding: 8px 9px;
+  border-radius: 16px;
   background: linear-gradient(180deg, var(--ink-650), var(--ink-700));
   border: 1px solid var(--ink-line);
   box-shadow: var(--shadow-card), 0 8px 22px rgba(0, 0, 0, 0.5);
@@ -176,51 +187,30 @@
   to { opacity: 1; }
 }
 
-.confirmbar__info {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-.confirmbar__coord {
-  font-family: var(--font-brush);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--gold-soft);
-  letter-spacing: 1px;
-}
-.confirmbar__hint {
-  font-size: 0.78rem;
-  color: var(--text-300);
-}
-.confirmbar--warn .confirmbar__hint { color: var(--ochre); }
-.confirmbar--bad .confirmbar__hint { color: var(--cinnabar-soft); }
-
-.confirmbar__btns {
-  display: flex;
-  gap: 8px;
-}
 .confirmbar__btn {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
   border: none;
-  border-radius: 11px;
-  padding: 9px 14px;
-  font-size: 0.92rem;
+  border-radius: 50%;
+  font-size: 1.35rem;
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1;
   cursor: pointer;
   transition: transform 0.08s, filter 0.15s;
 }
-.confirmbar__btn:active { transform: scale(0.94); }
+.confirmbar__btn:active { transform: scale(0.92); }
 .confirmbar__btn--cancel {
   background: var(--ink-600);
   color: var(--text-200);
   border: 1px solid var(--ink-line);
 }
 .confirmbar__btn--ok {
-  background: linear-gradient(180deg, var(--gold-soft), var(--gold));
-  color: #2a1d06;
-  box-shadow: 0 4px 14px rgba(217, 177, 103, 0.35);
+  background: linear-gradient(180deg, var(--jade), #4e9e7e);
+  color: #08130d;
+  box-shadow: 0 4px 14px rgba(116, 189, 156, 0.4);
 }
 .confirmbar__btn--ok:disabled {
   background: var(--ink-600);

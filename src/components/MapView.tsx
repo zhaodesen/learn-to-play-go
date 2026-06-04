@@ -20,8 +20,6 @@ function previewBoard(level: Level): Board {
 }
 
 export function MapView({ data, onOpen }: MapViewProps) {
-  const clearedCount = LEVELS.filter((l) => data.levels[l.id]?.cleared).length
-
   // 每关解锁状态 + 当前应玩关卡(最靠前的「已解锁未通关」)
   const { unlocked, startIndex } = useMemo(() => {
     const unlocked: boolean[] = []
@@ -62,7 +60,7 @@ export function MapView({ data, onOpen }: MapViewProps) {
     }
     animating.current = true
     const from = scroller.scrollTop
-    const dur = 420
+    const dur = 240
     const t0 = performance.now()
     const ease = (p: number) => 1 - Math.pow(1 - p, 3)
     const tick = (now: number) => {
@@ -109,7 +107,7 @@ export function MapView({ data, onOpen }: MapViewProps) {
       if (Math.abs(e.deltaY) < 8) return
       wheelLock = true
       step(e.deltaY > 0 ? 1 : -1)
-      window.setTimeout(() => { wheelLock = false }, 520)
+      window.setTimeout(() => { wheelLock = false }, 320)
     }
 
     // 跟手拖动:手指移动时实时改 scrollTop,页面同步滑动;松手后按位移吸附到目标页
@@ -137,8 +135,8 @@ export function MapView({ data, onOpen }: MapViewProps) {
       const dy = startY - e.changedTouches[0].clientY
       const dt = Date.now() - startT
       const pageH = scroller.clientHeight || 1
-      // 拖过半屏、或快速轻扫 → 翻一页;否则回弹到当前页
-      if (Math.abs(dy) > pageH * 0.25 || (Math.abs(dy) > 18 && dt < 250)) {
+      // 拖过一截、或快速轻扫 → 翻一页;否则回弹到当前页
+      if (Math.abs(dy) > pageH * 0.12 || (Math.abs(dy) > 12 && dt < 320)) {
         step(dy > 0 ? 1 : -1)
       } else {
         goTo(activeRef.current)
@@ -164,11 +162,6 @@ export function MapView({ data, onOpen }: MapViewProps) {
 
   return (
     <div className="feed" ref={feedRef}>
-      {/* 顶部进度浮条 */}
-      <div className="feed__progress">
-        已悟 <strong>{clearedCount}</strong> / {LEVELS.length} 关
-      </div>
-
       {/* 侧边章节进度轨 */}
       <div className="feed__rail" aria-hidden="true">
         {CHAPTERS.map((ch) => (

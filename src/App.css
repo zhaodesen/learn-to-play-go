@@ -46,9 +46,14 @@
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 
-/* 标题栏右侧功能入口:对弈 / 词典 / 设置 */
+/* 右上角悬浮功能入口:词典 / 音乐 */
 .appbar__actions {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 16px;
+  z-index: 30;
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 .appbar__act {
@@ -352,34 +357,6 @@
 @keyframes swipeUp {
   0%, 100% { transform: translateY(3px); opacity: 0.4; }
   50% { transform: translateY(-3px); opacity: 1; }
-}
-
-/* ============ 术语词典 ============ */
-.glossary__intro {
-  text-align: center;
-  color: var(--text-300);
-  font-size: 0.9rem;
-  margin: 0 0 18px;
-}
-.glossary__item {
-  background: linear-gradient(160deg, var(--ink-650), var(--ink-700));
-  border: 1px solid var(--ink-line);
-  border-radius: var(--radius-sm);
-  padding: 15px 16px;
-  margin-bottom: 11px;
-}
-.glossary__item h3 {
-  margin: 0 0 7px;
-  color: var(--jade);
-  font-size: 1.05rem;
-  font-family: var(--font-brush);
-  letter-spacing: 1px;
-}
-.glossary__item p {
-  margin: 0;
-  color: var(--text-200);
-  line-height: 1.75;
-  font-size: 0.9rem;
 }
 
 /* ============ 设置 ============ */

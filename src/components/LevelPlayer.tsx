@@ -5,7 +5,6 @@ import { useLevelGame } from '../game/useLevelGame'
 import { sound } from '../audio/sound'
 import { lookupTerm } from '../data/glossary'
 import { scoreArea } from '../engine/score'
-import { toCnNum } from '../utils/cn'
 import type { Level } from '../levels/types'
 import './LevelPlayer.css'
 
@@ -17,23 +16,10 @@ interface LevelPlayerProps {
   onNext: () => void
 }
 
-function objectiveText(level: Level): string {
-  switch (level.goal.kind) {
-    case 'place-any-legal':
-      return '在棋盘上落下一子试试。'
-    case 'capture':
-      return '找到对方只剩一口气的棋,吃掉它。'
-    case 'points':
-      return '想一想,这关键的一手该下在哪里?'
-    case 'tree':
-      return '一步一步,把对方追着吃掉。'
-    default:
-      return '想一想这一手。'
-  }
-}
-
 export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlayerProps) {
   const [openTerm, setOpenTerm] = useState<string | null>(null)
+  // 进入关卡先弹出全屏教学提示,看完再下棋;可随时点「?」重温
+  const [showTeach, setShowTeach] = useState(true)
 
   const game = useLevelGame(
     level,
@@ -45,9 +31,6 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
       else sound.play('place')
     },
   )
-
-  const fb = game.feedback
-  const fbText = fb.message ?? objectiveText(level)
 
   // 终局数子展示:过关后(且本关声明了 reveal)按数子法着色并算胜负
   const reveal = level.reveal
@@ -64,15 +47,18 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
   return (
     <div className="lp">
       <div className="lp__bar">
-        <button type="button" className="lp__back" onClick={onExit}>
-          ← 返回关卡
+        <button type="button" className="lp__back" onClick={onExit} aria-label="返回关卡">
+          ‹
         </button>
-        <span className="lp__title">
-          {level.chapterTitle} · 第{toCnNum(level.index)}关 · {level.title}
-        </span>
+        <button
+          type="button"
+          className="lp__teachbtn"
+          onClick={() => setShowTeach(true)}
+          aria-label="查看教学"
+        >
+          ?
+        </button>
       </div>
-
-      <TeachText text={level.teach} onTerm={setOpenTerm} />
 
       <Goban
         board={game.board}
@@ -84,8 +70,6 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
         lastMove={game.lastMove}
         territory={score?.ownership ?? null}
       />
-
-      <div className={`lp__feedback lp__feedback--${fb.type}`}>{fbText}</div>
 
       <div className="lp__controls">
         <button type="button" className="btn btn--ghost" onClick={game.showHint}>
@@ -147,6 +131,25 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
                 再玩一次
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showTeach && (
+        <div className="lp__teach-overlay" onClick={() => setShowTeach(false)}>
+          <div className="lp__teach-card" onClick={(e) => e.stopPropagation()}>
+            <TeachText
+              text={level.teach}
+              onTerm={setOpenTerm}
+              className="lp__teach-text"
+            />
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setShowTeach(false)}
+            >
+              知道了,开始
+            </button>
           </div>
         </div>
       )}

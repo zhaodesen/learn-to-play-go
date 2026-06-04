@@ -64,10 +64,6 @@ function starPoints(size: number): Point[] {
   return []
 }
 
-function coordName(size: number, p: Point): string {
-  return `${COLS[p.x]}${size - p.y}`
-}
-
 export function Goban(props: GobanProps) {
   const {
     board,
@@ -149,26 +145,12 @@ export function Goban(props: GobanProps) {
     }
   }
 
-  // 确认条文案
-  let confirmHint = ''
+  // 确认条色调:非法=禁、落子后仅 1 口气=当心、其余=正常
   let confirmTone: 'ok' | 'warn' | 'bad' = 'ok'
   if (pending && analysis) {
-    if (!analysis.legal) {
-      confirmTone = 'bad'
-      confirmHint =
-        analysis.error === 'ko'
-          ? '打劫 · 此手不可立即提回'
-          : analysis.error === 'suicide'
-            ? '禁入点 · 落子后己方无气'
-            : '此处不可落子'
-    } else if (analysis.captured.length > 0) {
-      confirmHint = `提 ${analysis.captured.length} 子`
-    } else if (analysis.selfLiberties === 1) {
+    if (!analysis.legal) confirmTone = 'bad'
+    else if (analysis.captured.length === 0 && analysis.selfLiberties === 1)
       confirmTone = 'warn'
-      confirmHint = '当心 · 落子后仅 1 口气'
-    } else {
-      confirmHint = `${analysis.selfLiberties} 口气`
-    }
   }
 
   return (
@@ -276,16 +258,20 @@ export function Goban(props: GobanProps) {
         )}
 
         {hintPoints.map((p) => (
-          <circle
-            key={`hint-${p.x}-${p.y}`}
-            cx={px(p.x)}
-            cy={px(p.y)}
-            r={CELL * 0.4}
-            className="hint-ring"
-            fill="none"
-            stroke="var(--jade)"
-            strokeWidth={3}
-          />
+          <g key={`hint-${p.x}-${p.y}`} className="hint-mark" pointerEvents="none">
+            {/* 呼吸光晕:半透明实心碧玉,放大更显眼 */}
+            <circle cx={px(p.x)} cy={px(p.y)} r={CELL * 0.46} className="hint-halo" />
+            {/* 主圈:粗描边 + 发光 */}
+            <circle
+              cx={px(p.x)}
+              cy={px(p.y)}
+              r={CELL * 0.42}
+              className="hint-ring"
+              fill="none"
+              stroke="var(--jade)"
+              strokeWidth={4.5}
+            />
+          </g>
         ))}
 
         {markers.map((m, i) => {
@@ -384,27 +370,23 @@ export function Goban(props: GobanProps) {
             top: `${(px(pending.y) / dim) * 100}%`,
           }}
         >
-          <div className="confirmbar__info">
-            <span className="confirmbar__coord">{coordName(size, pending)}</span>
-            <span className="confirmbar__hint">{confirmHint}</span>
-          </div>
-          <div className="confirmbar__btns">
-            <button
-              type="button"
-              className="confirmbar__btn confirmbar__btn--cancel"
-              onClick={() => setPending(null)}
-            >
-              ✕ 取消
-            </button>
-            <button
-              type="button"
-              className="confirmbar__btn confirmbar__btn--ok"
-              disabled={!analysis?.legal}
-              onClick={() => commit(pending.x, pending.y)}
-            >
-              ✓ 落子
-            </button>
-          </div>
+          <button
+            type="button"
+            className="confirmbar__btn confirmbar__btn--cancel"
+            onClick={() => setPending(null)}
+            aria-label="取消"
+          >
+            ✕
+          </button>
+          <button
+            type="button"
+            className="confirmbar__btn confirmbar__btn--ok"
+            disabled={!analysis?.legal}
+            onClick={() => commit(pending.x, pending.y)}
+            aria-label="落子"
+          >
+            ✓
+          </button>
         </div>
       )}
     </div>

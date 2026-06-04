@@ -213,3 +213,12 @@ src/
 3. 加关卡 = 加 `src/levels/data.ts` 数据;**务必同步在 `data.test.ts` 加正解校验**,多步题(征子)要用引擎跑通验证。
 4. 注意 TS 约束:**不能用 `enum`**、类型须 `import type`、不留未使用变量。
 5. 第 2~5 章均已完成(吃子手筋 + 逃子/对杀 + 连接切断 + 死活基础,共 22 关经引擎+浏览器验证)。死活关靠新求解器 `src/engine/lifedeath.ts` 穷举证明。下一步:**第 6 章 围地与终局**,需先给引擎加**终局数子与胜负判定**(目前引擎只有落子/提子/算气,尚无数地与胜负)—— 可复用 `lifedeath` 的洪水填充思路做"数空属谁"。
+
+---
+
+## 音乐版权 / Credits
+
+- 对局背景音乐:**Gymnopédie No.1**(Erik Satie 作曲,演奏:Kevin MacLeod / incompetech.com)
+  - 授权:[Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)
+  - 文件:`public/bgm/gymnopedie-no1.mp3`
+  - "Erik Satie: Gymnopedie No 1" by Kevin MacLeod is licensed under a Creative Commons Attribution license.
