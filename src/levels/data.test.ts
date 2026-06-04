@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { LEVELS } from './data'
 import { analyzeMove, createBoard, getCell, opponent, placeStone } from '../engine/board'
 import { attackerCanKill, isAlive } from '../engine/lifedeath'
+import { scoreArea } from '../engine/score'
 import type { Board, Point, Stone } from '../engine/types'
 import type { Level, SolutionNode } from './types'
 
@@ -138,6 +139,31 @@ describe('死活关求解器校验', () => {
           attackerCanKill(bv, ld.target.x, ld.target.y, attacker, attacker),
           '下对急所后对方应再也杀不掉',
         ).toBe(false)
+      }
+    })
+  }
+})
+
+describe('终局数子关 reveal 校验', () => {
+  for (const level of LEVELS) {
+    const rev = level.reveal
+    if (!rev) continue
+
+    it(`${level.id}「${level.title}」补好正解后数子应得预期胜负`, () => {
+      expect(level.goal.kind, 'reveal 关应为 points 型').toBe('points')
+      const pt = (level.goal as { kind: 'points'; points: Point[] }).points[0]
+      const board = build(level)
+
+      // 落子前:边界有漏,胜负未定形;落子后才数子
+      const r = placeStone(board, pt.x, pt.y, level.toPlay)
+      expect(r.ok && r.board, '正解应是合法落子').toBeTruthy()
+
+      const s = scoreArea(r.board!, { komi: rev.komi })
+      // 这些关都设计成黑(玩家)补好后获胜
+      expect(s.winner, '补好缺口后应由玩家方获胜').toBe('B')
+      expect(s.dame, '补好后应无剩余单官').toBe(0)
+      if (rev.certifyWinner) {
+        expect(s.winner, '毕业关认证方应获胜').toBe(rev.certifyWinner)
       }
     })
   }

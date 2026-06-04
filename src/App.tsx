@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react'
 import { MapView } from './components/MapView'
 import { LevelPlayer } from './components/LevelPlayer'
+import { PlayView } from './components/PlayView'
 import { GlossaryView } from './components/GlossaryView'
 import { SettingsView } from './components/SettingsView'
+import { Taiji } from './components/Taiji'
 import { getLevel, nextLevel } from './levels/data'
 import { sound } from './audio/sound'
-import {
-  loadProgress,
-  recordClear,
-  resetProgress,
-  updateSettings,
-} from './storage/progress'
+import { loadProgress, recordClear, updateSettings } from './storage/progress'
 import type { ProgressData, Settings } from './storage/progress'
 import './App.css'
 
 type Route =
   | { v: 'map' }
   | { v: 'level'; id: string }
+  | { v: 'play' }
   | { v: 'glossary' }
   | { v: 'settings' }
+
+const ACTIONS: { v: Route['v']; label: string; glyph: string }[] = [
+  { v: 'play', label: '对弈', glyph: '棋' },
+  { v: 'glossary', label: '词典', glyph: '典' },
+  { v: 'settings', label: '设置', glyph: '设' },
+]
 
 function App() {
   const [route, setRoute] = useState<Route>({ v: 'map' })
@@ -37,58 +41,53 @@ function App() {
     setData((d) => updateSettings(d, partial))
   }
 
-  function handleReset() {
-    if (window.confirm('确定要清空所有通关进度吗?此操作不可恢复。')) {
-      setData(resetProgress())
-    }
+  function go(v: Route['v']) {
+    sound.play('click')
+    setRoute({ v } as Route)
   }
 
   const level = route.v === 'level' ? getLevel(route.id) : undefined
+  const immersive = route.v === 'level' // 关卡内：沉浸下棋，隐藏标题栏入口
+  const feed = route.v === 'map' // 首页：抖音式整屏滑动闯关
 
   return (
-    <div className="app">
-      <header className="header">
+    <div className={`app${immersive ? ' app--immersive' : ''}${feed ? ' app--feed' : ''}`}>
+      <header className="appbar">
         <button
           type="button"
-          className="header__home"
+          className="appbar__brand"
           onClick={() => setRoute({ v: 'map' })}
         >
-          ⌂ 围棋入门
+          <Taiji size={30} />
+          <span className="appbar__title">墨韵围棋</span>
         </button>
-        <nav className="header__nav">
-          <button
-            type="button"
-            onClick={() => {
-              sound.play('click')
-              setRoute({ v: 'glossary' })
-            }}
-          >
-            术语词典
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              sound.play('click')
-              setRoute({ v: 'settings' })
-            }}
-          >
-            设置
-          </button>
-        </nav>
+
+        {!immersive && (
+          <nav className="appbar__actions">
+            {ACTIONS.map((a) => (
+              <button
+                key={a.v}
+                type="button"
+                className={`appbar__act${route.v === a.v ? ' appbar__act--on' : ''}`}
+                onClick={() => go(a.v)}
+              >
+                <span className="appbar__act-glyph">{a.glyph}</span>
+                <span className="appbar__act-label">{a.label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
       <main className="main">
         {route.v === 'map' && (
-          <>
-            <p className="tagline">通过闯关,从零学会下围棋</p>
-            <MapView
-              data={data}
-              onOpen={(id) => {
-                sound.play('click')
-                setRoute({ v: 'level', id })
-              }}
-            />
-          </>
+          <MapView
+            data={data}
+            onOpen={(id) => {
+              sound.play('click')
+              setRoute({ v: 'level', id })
+            }}
+          />
         )}
 
         {route.v === 'level' && level && (
@@ -109,14 +108,12 @@ function App() {
           <p className="tagline">找不到这一关。</p>
         )}
 
+        {route.v === 'play' && <PlayView onExit={() => setRoute({ v: 'map' })} />}
+
         {route.v === 'glossary' && <GlossaryView />}
 
         {route.v === 'settings' && (
-          <SettingsView
-            settings={data.settings}
-            onChange={changeSettings}
-            onReset={handleReset}
-          />
+          <SettingsView settings={data.settings} onChange={changeSettings} />
         )}
       </main>
     </div>

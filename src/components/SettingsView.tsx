@@ -3,10 +3,9 @@ import type { Settings } from '../storage/progress'
 interface SettingsViewProps {
   settings: Settings
   onChange: (partial: Partial<Settings>) => void
-  onReset: () => void
 }
 
-export function SettingsView({ settings, onChange, onReset }: SettingsViewProps) {
+export function SettingsView({ settings, onChange }: SettingsViewProps) {
   return (
     <div className="settings">
       <div className="setting-row">
@@ -17,24 +16,6 @@ export function SettingsView({ settings, onChange, onReset }: SettingsViewProps)
           onClick={() => onChange({ sfx: !settings.sfx })}
         >
           {settings.sfx ? '开' : '关'}
-        </button>
-      </div>
-
-      <div className="setting-row">
-        <span>音量</span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={Math.round(settings.volume * 100)}
-          onChange={(e) => onChange({ volume: Number(e.target.value) / 100 })}
-        />
-      </div>
-
-      <div className="setting-row">
-        <span>学习进度</span>
-        <button type="button" className="btn btn--ghost" onClick={onReset}>
-          清空进度
         </button>
       </div>
 

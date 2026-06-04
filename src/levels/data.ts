@@ -10,6 +10,7 @@ export const CHAPTERS: Chapter[] = [
   { index: 3, title: '逃子与对杀', subtitle: '数清气,该逃逃、该杀杀' },
   { index: 4, title: '连接与切断', subtitle: '把自己连牢,把对方切散' },
   { index: 5, title: '死活基础', subtitle: '两眼做活,点中要害' },
+  { index: 6, title: '围地与终局', subtitle: '占角守边、收官数子,下完一整盘' },
 ]
 
 export const LEVELS: Level[] = [
@@ -818,6 +819,133 @@ export const LEVELS: Level[] = [
     markers: [{ x: 0, y: 0, kind: 'square', color: '#2f6f3e' }],
     successText:
       '做活成功!你已经掌握死活的核心:认眼形 → 找要害 → 抢先手。做活和点杀是一枚硬币的两面,争的都是那个唯一的命门。恭喜走到这一步 —— 离"会下一盘完整的棋"只差围地与终局了。',
+  },
+
+  // ───────── 第 6 章 围地与终局 ─────────
+  {
+    // 金角银边:空盘占角(3-3 点),四个角任一即可。
+    id: 'c6-1',
+    chapterIndex: 6,
+    chapterTitle: '围地与终局',
+    index: 1,
+    title: '金角银边:先占角',
+    boardSize: 9,
+    toPlay: 'B',
+    stones: [],
+    goal: { kind: 'points', points: [
+      { x: 2, y: 2 }, { x: 6, y: 2 }, { x: 2, y: 6 }, { x: 6, y: 6 },
+    ] },
+    expectNoCapture: true,
+    teach:
+      '围棋的胜负,看谁[[围地|围空]]围得多。同样的棋子,**围角最省力、围边次之、围中央最费劲** —— 这就是棋谚"[[金角银边]]草肚皮"。开局第一手,先去占一个**空角**。',
+    hint: '四个角上带星位的 3-3 点(比如 C3)任选一个,都是好的占角点。',
+    hintPoints: [{ x: 2, y: 2 }, { x: 6, y: 2 }, { x: 2, y: 6 }, { x: 6, y: 6 }],
+    markers: [
+      { x: 2, y: 2, kind: 'square', color: '#2f6f3e' },
+      { x: 6, y: 2, kind: 'square', color: '#2f6f3e' },
+      { x: 2, y: 6, kind: 'square', color: '#2f6f3e' },
+      { x: 6, y: 6, kind: 'square', color: '#2f6f3e' },
+    ],
+    successText:
+      '占角!角部只要两条边就能合围,效率最高,所以开局都抢角。记住次序:**角 → 边 → 中央**。下一关学怎么把边上的空守住。',
+  },
+  {
+    // 守边·挡下:黑须在 (3,7) 挡住,把左下角的空封成自己的。
+    id: 'c6-2',
+    chapterIndex: 6,
+    chapterTitle: '围地与终局',
+    index: 2,
+    title: '守边:挡住缺口',
+    boardSize: 9,
+    toPlay: 'B',
+    stones: [
+      { x: 1, y: 6, c: 'B' }, { x: 2, y: 6, c: 'B' }, { x: 3, y: 6, c: 'B' }, { x: 0, y: 7, c: 'B' },
+      { x: 4, y: 6, c: 'W' }, { x: 4, y: 7, c: 'W' }, { x: 4, y: 8, c: 'W' },
+    ],
+    goal: { kind: 'points', points: [{ x: 3, y: 7 }] },
+    expectNoCapture: true,
+    teach:
+      '你在左下角已经圈了一块空,可白棋顺着边往里钻。**边界上有个缺口 (3,7) 没补,白棋一进来,这块空就全漏了。**轮到你,在缺口处[[挡|挡下]]一手,把角空封死 —— 这就是收官里最常见的"挡"。',
+    hint: '白棋想从 (3,7) 钻进你的角。抢先挡在那里。',
+    hintPoints: [{ x: 3, y: 7 }],
+    markers: [{ x: 3, y: 7, kind: 'square', color: '#2f6f3e' }],
+    successText:
+      '挡得好!一手挡下,左下角就实打实归你了。围地不只靠圈,还要在收官阶段把每个边界缺口都补严 —— 漏一个口,整片空可能就不算数。',
+  },
+  {
+    // 单官:(4,4) 两侧贴黑白,是中立点。黑收掉它。
+    id: 'c6-3',
+    chapterIndex: 6,
+    chapterTitle: '围地与终局',
+    index: 3,
+    title: '收单官:中立的最后一手',
+    boardSize: 9,
+    toPlay: 'B',
+    stones: [
+      { x: 3, y: 3, c: 'B' }, { x: 3, y: 4, c: 'B' }, { x: 3, y: 5, c: 'B' }, { x: 4, y: 3, c: 'B' }, { x: 4, y: 5, c: 'B' },
+      { x: 5, y: 3, c: 'W' }, { x: 5, y: 4, c: 'W' }, { x: 5, y: 5, c: 'W' }, { x: 6, y: 4, c: 'W' },
+    ],
+    goal: { kind: 'points', points: [{ x: 4, y: 4 }] },
+    expectNoCapture: true,
+    teach:
+      '黑白两块顶在一起,中间 (4,4) 这个点**一边是黑、一边是白,谁也围不成空** —— 这种点叫[[单官]](中立点)。收单官**不增加任何目数**,但它是终局前要补完的最后一类点。轮到你,把它收掉,这盘就收完了。',
+    hint: '黑白交界的正中那个点 (4,4)。',
+    hintPoints: [{ x: 4, y: 4 }],
+    markers: [{ x: 4, y: 4, kind: 'cross', color: '#9a7b3a' }],
+    successText:
+      '单官收完,终局到了!单官不算分,但收掉它边界才完整、才能开始数子。下一关,我们就来数一盘的胜负。',
+  },
+  {
+    // 数子入门:B 墙 x=5(缺 (5,4)),W 墙 x=6。补 (5,4) 后黑大胜。
+    id: 'c6-4',
+    chapterIndex: 6,
+    chapterTitle: '围地与终局',
+    index: 4,
+    title: '数子判胜负',
+    boardSize: 9,
+    toPlay: 'B',
+    stones: [
+      { x: 5, y: 0, c: 'B' }, { x: 5, y: 1, c: 'B' }, { x: 5, y: 2, c: 'B' }, { x: 5, y: 3, c: 'B' },
+      { x: 5, y: 5, c: 'B' }, { x: 5, y: 6, c: 'B' }, { x: 5, y: 7, c: 'B' }, { x: 5, y: 8, c: 'B' },
+      { x: 6, y: 0, c: 'W' }, { x: 6, y: 1, c: 'W' }, { x: 6, y: 2, c: 'W' }, { x: 6, y: 3, c: 'W' }, { x: 6, y: 4, c: 'W' },
+      { x: 6, y: 5, c: 'W' }, { x: 6, y: 6, c: 'W' }, { x: 6, y: 7, c: 'W' }, { x: 6, y: 8, c: 'W' },
+    ],
+    goal: { kind: 'points', points: [{ x: 5, y: 4 }] },
+    expectNoCapture: true,
+    reveal: { kind: 'score', komi: 7 },
+    teach:
+      '这盘快下完了:黑围左、白围右,只差黑墙上 (5,4) 一个缺口没补。补上它,我们就来[[数子]] —— **数子法**很简单:**你的子 + 你围住的空 = 你的"子数"**,白棋再加[[贴目]]。轮到你,补好缺口,看看谁赢。',
+    hint: '把黑墙补完整 —— 缺口在 (5,4)。',
+    hintPoints: [{ x: 5, y: 4 }],
+    markers: [{ x: 5, y: 4, kind: 'square', color: '#2f6f3e' }],
+    successText:
+      '数清了!黑把整片左边都围成了空,远多过白棋右边那条窄地。这就是数子判胜负:**子 + 空,谁多谁赢**(白方先加上贴目作补偿)。现在你已经会数一盘的胜负了 —— 去挑战毕业实战吧!',
+  },
+  {
+    // 🎓 毕业:B 墙 x=4(缺 (4,4)),W 墙 x=5。补 (4,4) 后黑 45 : 白 43,黑胜 2 子,认证。
+    id: 'c6-5',
+    chapterIndex: 6,
+    chapterTitle: '围地与终局',
+    index: 5,
+    title: '🎓 毕业实战:守住胜势',
+    boardSize: 9,
+    toPlay: 'B',
+    stones: [
+      { x: 4, y: 0, c: 'B' }, { x: 4, y: 1, c: 'B' }, { x: 4, y: 2, c: 'B' }, { x: 4, y: 3, c: 'B' },
+      { x: 4, y: 5, c: 'B' }, { x: 4, y: 6, c: 'B' }, { x: 4, y: 7, c: 'B' }, { x: 4, y: 8, c: 'B' },
+      { x: 5, y: 0, c: 'W' }, { x: 5, y: 1, c: 'W' }, { x: 5, y: 2, c: 'W' }, { x: 5, y: 3, c: 'W' }, { x: 5, y: 4, c: 'W' },
+      { x: 5, y: 5, c: 'W' }, { x: 5, y: 6, c: 'W' }, { x: 5, y: 7, c: 'W' }, { x: 5, y: 8, c: 'W' },
+    ],
+    goal: { kind: 'points', points: [{ x: 4, y: 4 }] },
+    expectNoCapture: true,
+    reveal: { kind: 'score', komi: 7, certifyWinner: 'B' },
+    teach:
+      '**毕业考。**一盘 9 路下到了终局,黑棋(你)略微领先。但你的长墙上 (4,4) 还有一个**断点**:这一手不补,白棋一冲,你苦心围的整片左边就和右边连成一片[[单官]],一目不剩 —— 满盘皆输。**沉住气,把这一手补回家**,锁定胜局,数子见真章。',
+    hint: '别贪 —— 先补掉自家长墙上的断点 (4,4),胜势就稳了。',
+    hintPoints: [{ x: 4, y: 4 }],
+    markers: [{ x: 4, y: 4, kind: 'square', color: '#e23b3b' }],
+    successText:
+      '补得稳!数子见分晓:**黑 45 子,白 43 子(含贴目 7),黑胜 2 子。**你用一手收官守住了半目都不能让的胜势 —— 这正是终局的功夫。\n\n从认识"气"到数清胜负,你已经走完了围棋入门的全程:会吃子、懂死活、能围地、数得清胜负。**恭喜入门 —— 现在,去下一盘真正属于你的棋吧!**',
   },
 ]
 

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Goban } from './Goban'
 import { TeachText } from './TeachText'
 import { useLevelGame } from '../game/useLevelGame'
 import { sound } from '../audio/sound'
 import { lookupTerm } from '../data/glossary'
+import { scoreArea } from '../engine/score'
 import type { Level } from '../levels/types'
 import './LevelPlayer.css'
 
@@ -47,6 +48,18 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
   const fb = game.feedback
   const fbText = fb.message ?? objectiveText(level)
 
+  // 终局数子展示:过关后(且本关声明了 reveal)按数子法着色并算胜负
+  const reveal = level.reveal
+  const score = useMemo(
+    () =>
+      reveal && game.status === 'won'
+        ? scoreArea(game.board, { komi: reveal.komi })
+        : null,
+    [reveal, game.status, game.board],
+  )
+  const certified =
+    !!score && !!reveal?.certifyWinner && score.winner === reveal.certifyWinner
+
   return (
     <div className="lp">
       <div className="lp__bar">
@@ -68,6 +81,7 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
         markers={level.markers}
         hintPoints={game.hintActive ? game.hintPoints : []}
         lastMove={game.lastMove}
+        territory={score?.ownership ?? null}
       />
 
       <div className={`lp__feedback lp__feedback--${fb.type}`}>{fbText}</div>
@@ -88,6 +102,31 @@ export function LevelPlayer({ level, hasNext, onWin, onExit, onNext }: LevelPlay
               {'★'.repeat(game.stars)}
               {'☆'.repeat(3 - game.stars)}
             </div>
+
+            {score && (
+              <div className="lp__score">
+                {certified && <div className="lp__certify">🎓 入门认证通过!</div>}
+                <div className="lp__scorerow">
+                  <span className="lp__scoreside lp__scoreside--b">
+                    黑 {score.black} 子
+                  </span>
+                  <span className="lp__scorevs">对</span>
+                  <span className="lp__scoreside lp__scoreside--w">
+                    白 {score.white} 子
+                  </span>
+                </div>
+                <div className="lp__scoremeta">
+                  含贴目 {score.komi} · 黑空 {score.blackTerritory} / 白空 {score.whiteTerritory}
+                  {score.dame > 0 && ` · 单官 ${score.dame}`}
+                </div>
+                <div className="lp__scoreresult">
+                  {score.winner === null
+                    ? '双方打平'
+                    : `${score.winner === 'B' ? '黑棋' : '白棋'}胜 ${score.margin} 子`}
+                </div>
+              </div>
+            )}
+
             <TeachText
               text={level.successText ?? '过关!'}
               onTerm={setOpenTerm}

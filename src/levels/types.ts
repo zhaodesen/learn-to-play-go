@@ -62,6 +62,13 @@ export interface Level {
    * target 给目标块上任一颗子的坐标;急所点取 goal.points[0]。
    */
   lifeDeath?: { target: Point; verdict: 'kill' | 'live' }
+  /**
+   * 终局数子展示:过关后把棋盘按「数子法(area scoring)」着色,并显示黑白区域与胜负。
+   * 用于第 6 章「数子判胜负」与毕业实战关。
+   * - komi:贴目,白方补偿目数,默认 7(9 路常用)。
+   * - certifyWinner:若设为某色且该色最终获胜,过关卡片额外显示「🎓 入门认证通过」(毕业关用)。
+   */
+  reveal?: { kind: 'score'; komi?: number; certifyWinner?: Stone }
 }
 
 /** 一个章节 */

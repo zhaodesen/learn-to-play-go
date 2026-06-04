@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Board, Point, Stone } from '../engine/types'
+import type { Owner } from '../engine/score'
 import { analyzeMove, getCell, pointKey } from '../engine/board'
 import './Goban.css'
 
@@ -19,8 +20,10 @@ export interface GobanProps {
   /** 轮到谁下;为 null 表示只读棋盘(不可落子、不显示预览) */
   toPlay?: Stone | null
   koPoint?: Point | null
-  /** 点击盘内任意点的回调(合法性由上层判断,便于做失败提示音) */
+  /** 落子(已二次确认)的回调;合法性由上层判断,便于做失败提示音 */
   onPlay?: (x: number, y: number) => void
+  /** 二次确认:先放虚影,再点「✓ 落子」才真正落子。默认开启(移动端防误触) */
+  confirmMode?: boolean
   markers?: Marker[]
   /** 教学推荐落子点,显示绿色呼吸圈 */
   hintPoints?: Point[]
@@ -28,6 +31,11 @@ export interface GobanProps {
   showSmartHints?: boolean
   showCoordinates?: boolean
   lastMove?: Point | null
+  /**
+   * 终局数子着色:长度 = size*size 的归属数组(行优先)。
+   * 仅在空交叉点上画:黑空=深色块、白空=浅色块、单官=灰点。传入则进入"数子展示"。
+   */
+  territory?: Owner[] | null
 }
 
 const CELL = 30
@@ -56,32 +64,47 @@ function starPoints(size: number): Point[] {
   return []
 }
 
+function coordName(size: number, p: Point): string {
+  return `${COLS[p.x]}${size - p.y}`
+}
+
 export function Goban(props: GobanProps) {
   const {
     board,
     toPlay = null,
     koPoint = null,
     onPlay,
+    confirmMode = true,
     markers = [],
     hintPoints = [],
     showSmartHints = true,
     showCoordinates = false,
     lastMove = null,
+    territory = null,
   } = props
 
   const size = board.size
   const dim = PAD * 2 + (size - 1) * CELL
   const [hover, setHover] = useState<Point | null>(null)
+  const [pending, setPending] = useState<Point | null>(null)
 
   const px = (i: number) => PAD + i * CELL
   const interactive = !!onPlay && toPlay !== null
 
-  // 悬停点的落子分析(只读点 / 非交互时为 null)
+  // 局面一变(落子成功 / 对手行棋 / 重来),清掉未确认的虚影
+  useEffect(() => {
+    setPending(null)
+  }, [board])
+
+  // 当前预览点:已点选的虚影优先,否则鼠标悬停(桌面端)
+  const preview = pending ?? hover
+
+  // 预览点的落子分析
   const analysis = useMemo(() => {
-    if (!hover || toPlay === null) return null
-    if (getCell(board, hover.x, hover.y) !== null) return null
-    return analyzeMove(board, hover.x, hover.y, toPlay, koPoint)
-  }, [hover, toPlay, board, koPoint])
+    if (!preview || toPlay === null) return null
+    if (getCell(board, preview.x, preview.y) !== null) return null
+    return analyzeMove(board, preview.x, preview.y, toPlay, koPoint)
+  }, [preview, toPlay, board, koPoint])
 
   // 这一手会提走的对方子(用于红色脉冲高亮)
   const capturedKeys = useMemo(() => {
@@ -94,11 +117,57 @@ export function Goban(props: GobanProps) {
 
   const stars = useMemo(() => starPoints(size), [size])
 
+  function tapPoint(x: number, y: number) {
+    if (!interactive) return
+    if (getCell(board, x, y) !== null) return // 已有子:忽略
+    if (!confirmMode) {
+      onPlay?.(x, y)
+      return
+    }
+    // 再次点中同一个待确认点 = 直接落子
+    if (pending && pending.x === x && pending.y === y) {
+      commit(x, y)
+      return
+    }
+    setHover(null)
+    setPending({ x, y })
+  }
+
+  function commit(x: number, y: number) {
+    const a = analyzeMove(board, x, y, toPlay!, koPoint)
+    if (!a.legal) return
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(14)
+    onPlay?.(x, y)
+    setPending(null)
+  }
+
   const stones: Array<{ x: number; y: number; c: Stone }> = []
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const c = getCell(board, x, y)
       if (c) stones.push({ x, y, c })
+    }
+  }
+
+  // 确认条文案
+  let confirmHint = ''
+  let confirmTone: 'ok' | 'warn' | 'bad' = 'ok'
+  if (pending && analysis) {
+    if (!analysis.legal) {
+      confirmTone = 'bad'
+      confirmHint =
+        analysis.error === 'ko'
+          ? '打劫 · 此手不可立即提回'
+          : analysis.error === 'suicide'
+            ? '禁入点 · 落子后己方无气'
+            : '此处不可落子'
+    } else if (analysis.captured.length > 0) {
+      confirmHint = `提 ${analysis.captured.length} 子`
+    } else if (analysis.selfLiberties === 1) {
+      confirmTone = 'warn'
+      confirmHint = '当心 · 落子后仅 1 口气'
+    } else {
+      confirmHint = `${analysis.selfLiberties} 口气`
     }
   }
 
@@ -111,19 +180,19 @@ export function Goban(props: GobanProps) {
         onMouseLeave={() => setHover(null)}
       >
         <defs>
-          <radialGradient id="stoneB" cx="35%" cy="30%" r="75%">
-            <stop offset="0%" stopColor="#6e6e6e" />
-            <stop offset="45%" stopColor="#1c1c1c" />
-            <stop offset="100%" stopColor="#000000" />
+          <radialGradient id="stoneB" cx="35%" cy="28%" r="78%">
+            <stop offset="0%" stopColor="var(--stone-b-1)" />
+            <stop offset="45%" stopColor="var(--stone-b-2)" />
+            <stop offset="100%" stopColor="var(--stone-b-3)" />
           </radialGradient>
-          <radialGradient id="stoneW" cx="35%" cy="30%" r="80%">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="70%" stopColor="#ededed" />
-            <stop offset="100%" stopColor="#bcbcbc" />
+          <radialGradient id="stoneW" cx="35%" cy="28%" r="82%">
+            <stop offset="0%" stopColor="var(--stone-w-1)" />
+            <stop offset="68%" stopColor="var(--stone-w-2)" />
+            <stop offset="100%" stopColor="var(--stone-w-3)" />
           </radialGradient>
         </defs>
 
-        <rect x="0" y="0" width={dim} height={dim} rx="6" className="goban__bg" />
+        <rect x="0" y="0" width={dim} height={dim} rx="8" className="goban__bg" />
 
         {Array.from({ length: size }, (_, i) => (
           <g key={`line-${i}`}>
@@ -133,7 +202,7 @@ export function Goban(props: GobanProps) {
         ))}
 
         {stars.map((p) => (
-          <circle key={`star-${p.x}-${p.y}`} cx={px(p.x)} cy={px(p.y)} r={CELL * 0.09} className="goban__star" />
+          <circle key={`star-${p.x}-${p.y}`} cx={px(p.x)} cy={px(p.y)} r={CELL * 0.1} className="goban__star" />
         ))}
 
         {showCoordinates &&
@@ -143,6 +212,30 @@ export function Goban(props: GobanProps) {
               <text x={PAD - 14} y={px(i)} textAnchor="middle" dominantBaseline="central">{size - i}</text>
             </g>
           ))}
+
+        {territory &&
+          Array.from({ length: size * size }, (_, k) => {
+            const x = k % size
+            const y = Math.floor(k / size)
+            if (getCell(board, x, y) !== null) return null
+            const owner = territory[k]
+            if (owner === 'B' || owner === 'W') {
+              return (
+                <rect
+                  key={`terr-${k}`}
+                  x={px(x) - CELL * 0.16}
+                  y={px(y) - CELL * 0.16}
+                  width={CELL * 0.32}
+                  height={CELL * 0.32}
+                  className={`territory territory--${owner === 'B' ? 'b' : 'w'}`}
+                />
+              )
+            }
+            if (owner === 'dame') {
+              return <circle key={`terr-${k}`} cx={px(x)} cy={px(y)} r={CELL * 0.08} className="territory--dame" />
+            }
+            return null
+          })}
 
         {stones.map(({ x, y, c }) => {
           const willCapture = capturedKeys.has(pointKey({ x, y }))
@@ -164,7 +257,7 @@ export function Goban(props: GobanProps) {
                   r={CELL * 0.46}
                   className="capture-ring"
                   fill="none"
-                  stroke="#e23b3b"
+                  stroke="var(--cinnabar)"
                   strokeWidth={2.6}
                 />
               )}
@@ -190,7 +283,7 @@ export function Goban(props: GobanProps) {
             r={CELL * 0.4}
             className="hint-ring"
             fill="none"
-            stroke="#3fb96b"
+            stroke="var(--jade)"
             strokeWidth={3}
           />
         ))}
@@ -198,7 +291,7 @@ export function Goban(props: GobanProps) {
         {markers.map((m, i) => {
           const cx = px(m.x)
           const cy = px(m.y)
-          const col = m.color ?? '#d33'
+          const col = m.color ?? 'var(--cinnabar)'
           if (m.kind === 'circle') {
             return <circle key={`m-${i}`} cx={cx} cy={cy} r={CELL * 0.3} fill="none" stroke={col} strokeWidth={2.5} />
           }
@@ -234,15 +327,30 @@ export function Goban(props: GobanProps) {
           )
         })}
 
-        {showSmartHints && hover && analysis && (
+        {/* 待确认的虚影:十字定位线 + 半透明棋子 + 后果提示 */}
+        {pending && (
+          <line
+            x1={px(0)} y1={px(pending.y)} x2={px(size - 1)} y2={px(pending.y)}
+            className="goban__aim"
+          />
+        )}
+        {pending && (
+          <line
+            x1={px(pending.x)} y1={px(0)} x2={px(pending.x)} y2={px(size - 1)}
+            className="goban__aim"
+          />
+        )}
+
+        {showSmartHints && preview && analysis && (
           <HoverHint
-            x={px(hover.x)}
-            y={px(hover.y)}
+            x={px(preview.x)}
+            y={px(preview.y)}
             legal={analysis.legal}
             error={analysis.error}
             selfLiberties={analysis.selfLiberties}
             captures={analysis.captured.length}
             color={toPlay}
+            firm={!!pending}
           />
         )}
 
@@ -258,12 +366,39 @@ export function Goban(props: GobanProps) {
                 width={CELL}
                 height={CELL}
                 className="goban__hit"
-                onMouseEnter={() => setHover({ x, y })}
-                onClick={() => onPlay && onPlay(x, y)}
+                onMouseEnter={() => !pending && setHover({ x, y })}
+                onClick={() => tapPoint(x, y)}
               />
             )
           })}
       </svg>
+
+      {/* 二次确认条:仅在已点选虚影时出现 */}
+      {pending && (
+        <div className={`confirmbar confirmbar--${confirmTone}`}>
+          <div className="confirmbar__info">
+            <span className="confirmbar__coord">{coordName(size, pending)}</span>
+            <span className="confirmbar__hint">{confirmHint}</span>
+          </div>
+          <div className="confirmbar__btns">
+            <button
+              type="button"
+              className="confirmbar__btn confirmbar__btn--cancel"
+              onClick={() => setPending(null)}
+            >
+              ✕ 取消
+            </button>
+            <button
+              type="button"
+              className="confirmbar__btn confirmbar__btn--ok"
+              disabled={!analysis?.legal}
+              onClick={() => commit(pending.x, pending.y)}
+            >
+              ✓ 落子
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -276,10 +411,12 @@ interface HoverHintProps {
   selfLiberties: number
   captures: number
   color: Stone | null
+  /** 已点选(虚影更实);仅悬停时更淡 */
+  firm: boolean
 }
 
 function HoverHint(props: HoverHintProps) {
-  const { x, y, legal, error, selfLiberties, captures, color } = props
+  const { x, y, legal, error, selfLiberties, captures, color, firm } = props
   if (legal) {
     return (
       <g pointerEvents="none">
@@ -288,10 +425,13 @@ function HoverHint(props: HoverHintProps) {
           cy={y}
           r={CELL * 0.46}
           fill={color === 'B' ? 'url(#stoneB)' : 'url(#stoneW)'}
-          className="stone stone--preview"
+          className={`stone stone--preview${firm ? ' stone--firm' : ''}`}
         />
+        {firm && (
+          <circle cx={x} cy={y} r={CELL * 0.54} className="aim-ring" fill="none" stroke="var(--gold)" strokeWidth={2.2} />
+        )}
         {selfLiberties === 1 && captures === 0 && (
-          <circle cx={x} cy={y} r={CELL * 0.52} className="danger-ring" fill="none" stroke="#f5a623" strokeWidth={2.6} strokeDasharray="3 3" />
+          <circle cx={x} cy={y} r={CELL * 0.58} className="danger-ring" fill="none" stroke="var(--ochre)" strokeWidth={2.6} strokeDasharray="3 3" />
         )}
       </g>
     )
@@ -299,8 +439,8 @@ function HoverHint(props: HoverHintProps) {
   if (error === 'suicide' || error === 'ko') {
     return (
       <g pointerEvents="none" className="forbidden">
-        <circle cx={x} cy={y} r={CELL * 0.34} fill="none" stroke="#e23b3b" strokeWidth={2.6} />
-        <line x1={x - CELL * 0.24} y1={y - CELL * 0.24} x2={x + CELL * 0.24} y2={y + CELL * 0.24} stroke="#e23b3b" strokeWidth={2.6} strokeLinecap="round" />
+        <circle cx={x} cy={y} r={CELL * 0.34} fill="none" stroke="var(--cinnabar)" strokeWidth={2.6} />
+        <line x1={x - CELL * 0.24} y1={y - CELL * 0.24} x2={x + CELL * 0.24} y2={y + CELL * 0.24} stroke="var(--cinnabar)" strokeWidth={2.6} strokeLinecap="round" />
       </g>
     )
   }
