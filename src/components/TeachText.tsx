@@ -1,4 +1,6 @@
 // 渲染教学文案:把 **粗体** 渲染为加粗,把 [[术语]] / [[显示文字|术语]] 渲染为可点击高亮。
+import { Text, View } from '@tarojs/components'
+
 interface TeachTextProps {
   text: string
   onTerm: (term: string) => void
@@ -8,10 +10,14 @@ interface TeachTextProps {
 export function TeachText({ text, onTerm, className }: TeachTextProps) {
   const parts = text.split(/(\*\*[^*]+\*\*|\[\[[^\]]+\]\])/g)
   return (
-    <p className={className ?? 'teach'}>
+    <View className={className ?? 'teach'}>
       {parts.map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i}>{part.slice(2, -2)}</strong>
+          return (
+            <Text key={i} className='teach__strong'>
+              {part.slice(2, -2)}
+            </Text>
+          )
         }
         if (part.startsWith('[[') && part.endsWith(']]')) {
           const inner = part.slice(2, -2)
@@ -19,18 +25,20 @@ export function TeachText({ text, onTerm, className }: TeachTextProps) {
           const label = sep >= 0 ? inner.slice(0, sep) : inner
           const term = sep >= 0 ? inner.slice(sep + 1) : inner
           return (
-            <button
+            <Text
               key={i}
-              type="button"
-              className="term"
-              onClick={() => onTerm(term)}
+              className='term'
+              onClick={(e) => {
+                e.stopPropagation()
+                onTerm(term)
+              }}
             >
               {label}
-            </button>
+            </Text>
           )
         }
-        return <span key={i}>{part}</span>
+        return <Text key={i}>{part}</Text>
       })}
-    </p>
+    </View>
   )
 }

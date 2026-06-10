@@ -1,4 +1,7 @@
-/** 太极图：首页标识 / 行棋指示 / 思考中旋转动画共用 */
+// 太极图:首页标识 / 行棋指示 / 思考中旋转动画共用。
+// 小程序不支持内联 SVG,改用纯 CSS(渐变 + 圆形 View)绘制。
+import { View } from '@tarojs/components'
+
 export function Taiji({
   size = 40,
   spin = false,
@@ -9,28 +12,13 @@ export function Taiji({
   className?: string
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
+    <View
       className={`taiji${spin ? ' taiji--spin' : ''} ${className}`.trim()}
-      aria-hidden="true"
+      style={{ width: `${size}px`, height: `${size}px` }}
     >
-      <circle cx="50" cy="50" r="48" fill="#f3ead4" />
-      <path
-        d="M50 2 a48 48 0 0 1 0 96 a24 24 0 0 1 0-48 a24 24 0 0 0 0-48 z"
-        fill="#15181e"
-      />
-      <circle cx="50" cy="26" r="8" fill="#f3ead4" />
-      <circle cx="50" cy="74" r="8" fill="#15181e" />
-      <circle
-        cx="50"
-        cy="50"
-        r="48"
-        fill="none"
-        stroke="rgba(217,177,103,0.55)"
-        strokeWidth="2"
-      />
-    </svg>
+      <View className='taiji__half' />
+      <View className='taiji__dot taiji__dot--top' />
+      <View className='taiji__dot taiji__dot--bottom' />
+    </View>
   )
 }

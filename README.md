@@ -216,6 +216,42 @@ src/
 
 ---
 
+## 小程序版(feat/taro-miniprogram 分支)
+
+本分支把 web 版完整玩法迁移到 **Taro 4 + React**,目标平台:**微信小程序(weapp)与抖音小程序(tt)**。
+
+### 命令
+
+```bash
+npm install --legacy-peer-deps   # 安装依赖(Taro 对 webpack 有精确 peer 版本要求)
+npm run dev:weapp                # 微信端开发(watch),产物在 dist/,用微信开发者工具打开项目根目录
+npm run dev:tt                   # 抖音端开发(watch),用抖音开发者工具打开项目根目录
+npm run build:weapp              # 微信端生产构建
+npm run build:tt                 # 抖音端生产构建
+npm test                         # vitest 引擎/关卡单测(纯逻辑,与平台无关)
+```
+
+- 微信 AppID 配置在 `project.config.json`(当前为 `touristappid` 测试号),抖音在 `project.tt.json`(`testappid`)。**发布前替换为正式 AppID**。
+- 主包体积约 0.6MB,远低于 2MB 限制。
+- `webpack` 必须锁定 `5.91.0`(Taro 4.2 的精确 peer 要求,升级会触发 ProgressPlugin 校验报错)。
+
+### 与 web 版的差异(迁移决策记录)
+
+| 模块 | web 版 | 小程序版 | 原因 |
+|---|---|---|---|
+| 棋盘 Goban | SVG + CSS 动画 | **单个 Canvas 2D**(`src/components/Goban/`)+ View 覆盖层做二次确认条 | 小程序不支持交互式 SVG;动画用 `canvas.requestAnimationFrame` 按需驱动,静止时只画一帧 |
+| 路由 | App.tsx 单页内切换 | 三个页面:`pages/index`(闯关 feed)/ `pages/level`(关卡)/ `pages/play`(人机对弈) | 小程序原生页面栈;「下一关」用 `redirectTo` 重建页面以重置 `useLevelGame` |
+| 闯关 feed | 手写 wheel/touch 整屏翻页 | 纵向 **Swiper** | 原生跟手;棋盘画布只渲染前后一屏(±1)控制 canvas 数量 |
+| 音效 | Web Audio 实时合成 | 预合成 wav(`scripts/gen-sfx.mjs` 离线生成到 `src/assets/sfx/`,构建时 copy 进包)+ `InnerAudioContext` | 小程序无 Web Audio;wav 共约 85KB |
+| BGM | mp3 循环 | **暂去除**(`sound.startBgm/stopBgm` 接口保留) | 7.2MB 超主包限制;后续可接 CDN(需配置合法域名) |
+| 存档 | localStorage | `Taro.getStorageSync/setStorageSync` | 平台 API |
+| 太极图 / 悬停预览 | SVG / 鼠标 hover | 纯 CSS 太极;hover 改为「点选虚影 + 二次确认」 | 触屏无 hover |
+| 样式 | px(375 设计稿) | px 原值保留,`designWidth: 375` 由 pxtransform 转 rpx | 与 web 值一一对应,方便对照维护 |
+
+引擎(`engine/`)、关卡(`levels/`)、状态机(`game/`)、词典(`data/`)与全部单测**零改动**直接复用。设置页与首页音乐开关合并为右上角**音效开关**(BGM 移除后 music 字段保留待用)。
+
+---
+
 ## 音乐版权 / Credits
 
 - 对局背景音乐:**Gymnopédie No.1**(Erik Satie 作曲,演奏:Kevin MacLeod / incompetech.com)

@@ -1,0 +1,193 @@
+/* ============================================================
+   墨韵围棋 · 设计令牌(小程序版)
+   暗黑水墨 / 阴阳 / 八卦 / 五行 —— 移动端竖版
+   CSS 变量定义在 page 上,供所有页面与组件继承。
+   ============================================================ */
+page {
+  /* 墨 —— 由深到浅的底色层 */
+  --ink-900: #0a0c10;
+  --ink-850: #0e1117;
+  --ink-800: #12161d;
+  --ink-700: #1a1f28;
+  --ink-650: #20262f;
+  --ink-600: #28303a;
+  --ink-line: #36404d;
+  --ink-line-soft: #2a323d;
+
+  /* 宣纸 —— 棋盘与暖色文字 */
+  --paper: #cdba8c;
+  --paper-edge: #b29a64;
+
+  /* 五行点彩 */
+  --gold: #d9b167;
+  --gold-soft: #ecd49b;
+  --gold-deep: #a8823f;
+  --jade: #74bd9c;
+  --jade-deep: #3f7e64;
+  --cinnabar: #d3553f;
+  --cinnabar-soft: #e57a63;
+  --water: #6a9ec4;
+  --ochre: #c79152;
+
+  /* 暖白文字(落在墨底上) */
+  --text-100: #ede4d0;
+  --text-200: #cdc3ac;
+  --text-300: #9c917a;
+  --text-400: #6f6657;
+  --text-on-paper: #2a2013;
+
+  --radius: 16px;
+  --radius-sm: 11px;
+
+  --font-brush: 'Hannotate SC', 'STKaiti', 'Kaiti SC', 'KaiTi', '楷体', serif;
+  --font-body: 'PingFang SC', system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+
+  font-family: var(--font-body);
+  color: var(--text-100);
+  height: 100%;
+  /* 水墨底:烟云团雾 + 暗角 */
+  background-color: #07090d;
+  background-image:
+    radial-gradient(120% 80% at 18% 0%, rgba(56, 70, 64, 0.45), transparent 55%),
+    radial-gradient(120% 90% at 95% 12%, rgba(40, 52, 70, 0.4), transparent 50%),
+    radial-gradient(140% 100% at 50% 110%, rgba(70, 56, 38, 0.35), transparent 55%),
+    radial-gradient(100% 100% at 50% 40%, #11151c, #07090d 90%);
+}
+
+/* ============ 通用按钮 ============ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+  color: #2a1d06;
+  padding: 13px 22px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(217, 177, 103, 0.3);
+}
+.btn--ghost {
+  background: var(--ink-600);
+  color: var(--text-200);
+  border: 1px solid var(--ink-line);
+  box-shadow: none;
+}
+.btn--disabled {
+  opacity: 0.5;
+}
+
+/* ============ 教学文案里的可点术语 ============ */
+.term {
+  background: rgba(217, 177, 103, 0.16);
+  border-bottom: 1.5px dashed var(--gold);
+  color: var(--gold-soft);
+  padding: 0 3px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.teach__strong {
+  font-weight: 700;
+  color: var(--gold-soft);
+}
+
+/* ============ 太极图(纯 CSS) ============ */
+.taiji {
+  position: relative;
+  border-radius: 50%;
+  /* 左白右黑两半 */
+  background: linear-gradient(90deg, #f3ead4 0%, #f3ead4 50%, #15181e 50%, #15181e 100%);
+  border: 1px solid rgba(217, 177, 103, 0.55);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+/* 上下两个鱼形半圆 */
+.taiji__half {
+  position: absolute;
+  left: 25%;
+  top: 0;
+  width: 50%;
+  height: 100%;
+}
+.taiji__half::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 50%;
+  background: #15181e;
+  border-radius: 50%;
+}
+.taiji__half::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  background: #f3ead4;
+  border-radius: 50%;
+}
+.taiji__dot {
+  position: absolute;
+  left: 50%;
+  width: 16%;
+  height: 16%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+.taiji__dot--top {
+  top: 26%;
+  background: #f3ead4;
+}
+.taiji__dot--bottom {
+  top: 74%;
+  background: #15181e;
+}
+.taiji--spin {
+  animation: taijiSpin 3.2s linear infinite;
+}
+@keyframes taijiSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============ 数子结果卡(关卡页 / 对弈页共用) ============ */
+.scorebox {
+  width: 100%;
+}
+.scorebox__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.scorebox__side--b {
+  color: var(--text-100);
+}
+.scorebox__side--w {
+  color: var(--text-200);
+}
+.scorebox__vs {
+  color: var(--text-400);
+  font-size: 13px;
+}
+.scorebox__meta {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-300);
+}
+.scorebox__result {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold-soft);
+}

@@ -1,0 +1,257 @@
+/* ============ 关卡页(教学 + 做题) ============ */
+.lp {
+  min-height: 100vh;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px
+    calc(env(safe-area-inset-bottom) + 20px);
+  box-sizing: border-box;
+}
+
+.lp--missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.lp__missing-text {
+  font-family: var(--font-brush);
+  color: var(--text-300);
+  font-size: 16px;
+}
+
+.lp__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.lp__name {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-brush);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-200);
+  letter-spacing: 2px;
+}
+
+/* 圆形图标按钮:返回「‹」/ 教学「?」 */
+.lp__back,
+.lp__teachbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ink-600);
+  border: 1px solid var(--ink-line);
+  color: var(--gold-soft);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.lp__back {
+  font-size: 26px;
+  font-weight: 700;
+  padding-bottom: 3px;
+}
+.lp__teachbtn {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* 落子反馈条(错着 / 禁着提示) */
+.lp__feedback {
+  margin: 12px auto 0;
+  max-width: 480px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(211, 85, 63, 0.12);
+  border: 1px solid rgba(211, 85, 63, 0.45);
+  color: var(--cinnabar-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.lp__controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* ============ 过关浮层 ============ */
+.lp__win {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 7, 10, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.lp__wincard {
+  position: relative;
+  background: linear-gradient(165deg, var(--ink-650), var(--ink-800));
+  border: 1px solid var(--gold-deep);
+  border-radius: 20px;
+  padding: 30px 24px 26px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  animation: winPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes winPop {
+  from {
+    transform: scale(0.8) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.lp__stars {
+  display: block;
+  font-size: 40px;
+  color: var(--gold);
+  letter-spacing: 6px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 18px rgba(217, 177, 103, 0.5);
+}
+
+.lp__certify {
+  font-family: var(--font-brush);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 10px;
+  text-shadow: 0 0 14px rgba(217, 177, 103, 0.4);
+}
+
+.lp__wincard .scorebox {
+  margin: 6px auto 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--ink-line);
+  box-sizing: border-box;
+}
+
+.lp__wintext {
+  color: var(--text-200);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 10px 0 20px;
+}
+
+.lp__winbtns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lp__winbtns .btn {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ============ 教学全屏弹框 ============ */
+.lp__teach-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(8, 11, 16, 0.72);
+}
+.lp__teach-card {
+  max-width: 440px;
+  width: 100%;
+  background: linear-gradient(160deg, rgba(217, 177, 103, 0.1), rgba(20, 24, 31, 0.96));
+  border: 1px solid var(--gold-deep);
+  border-radius: 18px;
+  padding: 26px 22px 22px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  animation: winPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+.lp__teach-text {
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--text-100);
+  margin-bottom: 22px;
+}
+.lp__teach-ok {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ============ 术语解释弹层(底部滑入) ============ */
+.term-pop {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 7, 10, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 60;
+}
+.term-pop__card {
+  background: linear-gradient(180deg, var(--ink-650), var(--ink-800));
+  border: 1px solid var(--ink-line);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 22px 20px calc(env(safe-area-inset-bottom) + 22px);
+  width: 100%;
+  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.45);
+  animation: slideUp 0.24s ease-out;
+  box-sizing: border-box;
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.term-pop__title {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--gold-soft);
+  font-size: 19px;
+  font-family: var(--font-brush);
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+.term-pop__body {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--text-200);
+  line-height: 1.8;
+  font-size: 15px;
+}
+.term-pop__ok {
+  width: 100%;
+  box-sizing: border-box;
+}

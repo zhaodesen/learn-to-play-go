@@ -1,4 +1,5 @@
-// 进度与设置存档(localStorage)。所有读写都做了容错,localStorage 不可用时退回内存默认值。
+// 进度与设置存档(小程序本地存储)。所有读写都做了容错,存储不可用时退回内存默认值。
+import Taro from '@tarojs/taro'
 
 export interface LevelRecord {
   stars: number
@@ -25,7 +26,7 @@ function freshData(): ProgressData {
 
 export function loadProgress(): ProgressData {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = Taro.getStorageSync<string>(KEY)
     if (!raw) return freshData()
     const parsed = JSON.parse(raw) as Partial<ProgressData>
     return {
@@ -39,9 +40,9 @@ export function loadProgress(): ProgressData {
 
 export function saveProgress(data: ProgressData): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(data))
+    Taro.setStorageSync(KEY, JSON.stringify(data))
   } catch {
-    /* 忽略:隐私模式或存储已满 */
+    /* 忽略:存储已满或不可用 */
   }
 }
 
