@@ -1,4 +1,4 @@
-// 进度与设置存档(小程序本地存储)。所有读写都做了容错,存储不可用时退回内存默认值。
+// 进度存档(小程序本地存储)。所有读写都做了容错,存储不可用时退回内存默认值。
 import Taro from '@tarojs/taro'
 
 export interface LevelRecord {
@@ -6,22 +6,14 @@ export interface LevelRecord {
   cleared: boolean
 }
 
-export interface Settings {
-  sfx: boolean
-  music: boolean
-  volume: number
-}
-
 export interface ProgressData {
   levels: Record<string, LevelRecord>
-  settings: Settings
 }
 
 const KEY = 'ltpg.progress.v1'
-const DEFAULT_SETTINGS: Settings = { sfx: true, music: true, volume: 0.6 }
 
 function freshData(): ProgressData {
-  return { levels: {}, settings: { ...DEFAULT_SETTINGS } }
+  return { levels: {} }
 }
 
 export function loadProgress(): ProgressData {
@@ -29,10 +21,7 @@ export function loadProgress(): ProgressData {
     const raw = Taro.getStorageSync<string>(KEY)
     if (!raw) return freshData()
     const parsed = JSON.parse(raw) as Partial<ProgressData>
-    return {
-      levels: parsed.levels ?? {},
-      settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
-    }
+    return { levels: parsed.levels ?? {} }
   } catch {
     return freshData()
   }
@@ -59,18 +48,6 @@ export function recordClear(
       ...data.levels,
       [levelId]: { stars: Math.max(stars, prevStars), cleared: true },
     },
-  }
-  saveProgress(next)
-  return next
-}
-
-export function updateSettings(
-  data: ProgressData,
-  partial: Partial<Settings>,
-): ProgressData {
-  const next: ProgressData = {
-    ...data,
-    settings: { ...data.settings, ...partial },
   }
   saveProgress(next)
   return next

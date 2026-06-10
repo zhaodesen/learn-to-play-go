@@ -17,17 +17,14 @@ export default defineConfig<'webpack5'>(async (merge) => {
       828: 1.81 / 2
     },
     sourceRoot: 'src',
-    outputRoot: 'dist',
+    outputRoot: process.env.TARO_OUTPUT_ROOT || 'dist',
     plugins: [
       "@tarojs/plugin-generator"
     ],
     defineConstants: {
     },
     copy: {
-      patterns: [
-        // 音效素材原样拷入包内,供 InnerAudioContext 以绝对路径播放
-        { from: 'src/assets/sfx/', to: 'dist/assets/sfx/' }
-      ],
+      patterns: [],
       options: {
       }
     },

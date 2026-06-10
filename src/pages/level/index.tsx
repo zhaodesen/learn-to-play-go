@@ -1,16 +1,17 @@
-// 关卡页:教学 + 做题。对应 web 版 LevelPlayer,路由参数 ?id=关卡ID。
-// 「下一关」用 redirectTo 替换当前页,使 useLevelGame 随页面重建自动重置。
+// 课时页:讲解(本课要点)→ 示范(棋盘标注)→ 随堂练习(落子)→ 本课小结。
+// 路由参数 ?id=课时ID。「下一课」用 redirectTo 替换当前页,使 useLevelGame 随页面重建自动重置。
 import { useMemo, useState } from 'react'
-import Taro, { useRouter, useDidShow } from '@tarojs/taro'
+import Taro, { useRouter } from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { Goban } from '../../components/Goban'
 import { TeachText } from '../../components/TeachText'
 import { useLevelGame } from '../../game/useLevelGame'
-import { sound } from '../../audio/sound'
 import { lookupTerm } from '../../data/glossary'
 import { scoreArea } from '../../engine/score'
-import { getLevel, nextLevel } from '../../levels/data'
+import { getLevel, nextLevel, LEVELS } from '../../levels/data'
 import { loadProgress, recordClear } from '../../storage/progress'
+import { starsToMastery, extractTerms } from '../../utils/mastery'
+import { pageLayoutStyle } from '../../utils/layout'
 import './index.scss'
 
 export default function LevelPage() {
@@ -18,15 +19,10 @@ export default function LevelPage() {
   const id = router.params.id ?? ''
   const level = getLevel(id)
 
-  useDidShow(() => {
-    const s = loadProgress().settings
-    sound.configure({ sfx: s.sfx, volume: s.volume })
-  })
-
   if (!level) {
     return (
-      <View className='lp lp--missing'>
-        <Text className='lp__missing-text'>找不到这一关。</Text>
+      <View className='lp lp--missing' style={pageLayoutStyle()}>
+        <Text className='lp__missing-text'>找不到这节课。</Text>
         <View className='btn' onClick={() => Taro.navigateBack()}>
           返回
         </View>
@@ -34,28 +30,22 @@ export default function LevelPage() {
     )
   }
 
-  return <LevelPlayer key={level.id} levelId={level.id} />
+  return <LessonPlayer key={level.id} levelId={level.id} />
 }
 
-function LevelPlayer({ levelId }: { levelId: string }) {
+function LessonPlayer({ levelId }: { levelId: string }) {
   const level = getLevel(levelId)!
+  const lessonNo = LEVELS.findIndex((l) => l.id === level.id) + 1
   const hasNext = !!nextLevel(level.id)
   const [openTerm, setOpenTerm] = useState<string | null>(null)
-  // 进入关卡先弹出全屏教学提示,看完再下棋;可随时点「?」重温
+  // 进入课时先弹出「本课要点」讲解,看完再练习;可随时点「?」重温
   const [showTeach, setShowTeach] = useState(true)
 
-  const game = useLevelGame(
-    level,
-    (stars) => recordClear(loadProgress(), level.id, stars),
-    (kind) => {
-      if (kind === 'win') sound.play('win')
-      else if (kind === 'capture') sound.play('capture')
-      else if (kind === 'wrong') sound.play('wrong')
-      else sound.play('place')
-    },
+  const game = useLevelGame(level, (stars) =>
+    recordClear(loadProgress(), level.id, stars),
   )
 
-  // 终局数子展示:过关后(且本关声明了 reveal)按数子法着色并算胜负
+  // 终局数子展示:完成后(且本课声明了 reveal)按数子法着色并算胜负
   const reveal = level.reveal
   const score = useMemo(
     () =>
@@ -67,6 +57,13 @@ function LevelPlayer({ levelId }: { levelId: string }) {
   const certified =
     !!score && !!reveal?.certifyWinner && score.winner === reveal.certifyWinner
 
+  // 本课小结:掌握度 + 涉及术语回顾
+  const mastery = starsToMastery(game.stars, game.status === 'won')
+  const lessonTerms = useMemo(
+    () => extractTerms(level.teach, level.successText),
+    [level.teach, level.successText],
+  )
+
   function exit() {
     Taro.navigateBack()
   }
@@ -77,16 +74,27 @@ function LevelPlayer({ levelId }: { levelId: string }) {
     else Taro.navigateBack()
   }
 
+  // 小程序 canvas 在部分环境下永远浮在最上层,会盖住弹框;
+  // 任何浮层打开时冻结棋盘(快照顶替 + 卸载 canvas),关闭后无缝恢复。
+  const overlayOpen = game.status === 'won' || showTeach || !!openTerm
+
   return (
-    <View className='lp'>
+    <View className='lp' style={pageLayoutStyle()}>
       <View className='lp__bar'>
         <View className='lp__back' onClick={exit}>
           ‹
         </View>
-        <Text className='lp__name'>{level.title}</Text>
+        <Text className='lp__name'>
+          第 {lessonNo} 课 · {level.title}
+        </Text>
         <View className='lp__teachbtn' onClick={() => setShowTeach(true)}>
           ?
         </View>
+      </View>
+
+      <View className='lp__stage'>
+        <Text className='lp__stage-tag'>✍️ 随堂练习</Text>
+        <Text className='lp__stage-hint'>按本课要点在棋盘上落子</Text>
       </View>
 
       <Goban
@@ -98,9 +106,10 @@ function LevelPlayer({ levelId }: { levelId: string }) {
         hintPoints={game.hintActive ? game.hintPoints : []}
         lastMove={game.lastMove}
         territory={score?.ownership ?? null}
+        frozen={overlayOpen}
       />
 
-      {/* 落子反馈条 */}
+      {/* 练习反馈条 */}
       {(game.feedback.type === 'wrong' || game.feedback.type === 'illegal') &&
         game.feedback.message && (
           <View className='lp__feedback'>{game.feedback.message}</View>
@@ -111,21 +120,25 @@ function LevelPlayer({ levelId }: { levelId: string }) {
           💡 提示
         </View>
         <View className='btn btn--ghost' onClick={game.reset}>
-          ↺ 重来
+          ↺ 重做
         </View>
       </View>
 
       {game.status === 'won' && (
         <View className='lp__win'>
           <View className='lp__wincard'>
-            <Text className='lp__stars'>
-              {'★'.repeat(game.stars)}
-              {'☆'.repeat(3 - game.stars)}
-            </Text>
+            <Text className='lp__win-head'>本课小结</Text>
+            {mastery && (
+              <View className='lp__mastery-row'>
+                <Text className={`mastery mastery--${mastery.tone}`}>{mastery.label}</Text>
+              </View>
+            )}
 
             {score && (
               <View className='scorebox'>
-                {certified && <View className='lp__certify'>🎓 入门认证通过!</View>}
+                {certified && (
+                  <View className='lp__certify'>🎓 恭喜完成围棋入门课程!</View>
+                )}
                 <View className='scorebox__row'>
                   <Text className='scorebox__side--b'>黑 {score.black} 子</Text>
                   <Text className='scorebox__vs'>对</Text>
@@ -145,22 +158,36 @@ function LevelPlayer({ levelId }: { levelId: string }) {
             )}
 
             <TeachText
-              text={level.successText ?? '过关!'}
+              text={level.successText ?? '完成本课!'}
               onTerm={setOpenTerm}
               className='lp__wintext'
             />
+
+            {lessonTerms.length > 0 && (
+              <View className='lp__terms'>
+                <Text className='lp__terms-label'>本课术语</Text>
+                <View className='lp__terms-chips'>
+                  {lessonTerms.map((t) => (
+                    <Text key={t} className='term' onClick={() => setOpenTerm(t)}>
+                      {t}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <View className='lp__winbtns'>
               {hasNext ? (
                 <View className='btn' onClick={goNext}>
-                  下一关 →
+                  下一课 →
                 </View>
               ) : (
                 <View className='btn' onClick={exit}>
-                  完成,返回
+                  完成课程,返回目录
                 </View>
               )}
               <View className='btn btn--ghost' onClick={game.reset}>
-                再玩一次
+                再练一遍
               </View>
             </View>
           </View>
@@ -170,13 +197,14 @@ function LevelPlayer({ levelId }: { levelId: string }) {
       {showTeach && (
         <View className='lp__teach-overlay' onClick={() => setShowTeach(false)}>
           <View className='lp__teach-card' onClick={(e) => e.stopPropagation()}>
+            <Text className='lp__teach-head'>本课要点</Text>
             <TeachText
               text={level.teach}
               onTerm={setOpenTerm}
               className='lp__teach-text'
             />
             <View className='btn lp__teach-ok' onClick={() => setShowTeach(false)}>
-              知道了,开始
+              明白了,开始练习
             </View>
           </View>
         </View>

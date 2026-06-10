@@ -1,9 +1,77 @@
-/* ============ 关卡页(教学 + 做题) ============ */
+/* ============ 课时页(讲解 + 随堂练习 + 小结) ============ */
 .lp {
   min-height: 100vh;
-  padding: calc(env(safe-area-inset-top) + 10px) 16px
-    calc(env(safe-area-inset-bottom) + 20px);
+  padding: calc(var(--nav-bottom, 60px) + 2px) 16px
+    calc(var(--safe-bottom, 0px) + 20px);
   box-sizing: border-box;
+}
+
+/* 阶段标识:随堂练习 */
+.lp__stage {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 2px 10px;
+}
+.lp__stage-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-soft);
+  letter-spacing: 1px;
+}
+.lp__stage-hint {
+  font-size: 11px;
+  color: var(--text-400);
+}
+
+/* 小结头 / 掌握度 */
+.lp__win-head {
+  display: block;
+  font-family: var(--font-brush);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--gold-soft);
+  margin-bottom: 10px;
+}
+.lp__mastery-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.lp__mastery-row .mastery {
+  font-size: 14px;
+  padding: 6px 18px;
+}
+
+/* 本课术语回顾 */
+.lp__terms {
+  margin: 2px 0 18px;
+  text-align: center;
+}
+.lp__terms-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-400);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+.lp__terms-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 讲解卡头 */
+.lp__teach-head {
+  display: block;
+  font-family: var(--font-brush);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--gold-soft);
+  margin-bottom: 12px;
 }
 
 .lp--missing {
@@ -24,7 +92,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .lp__name {
@@ -83,7 +151,7 @@
   margin-top: 14px;
 }
 
-/* ============ 过关浮层 ============ */
+/* ============ 本课小结浮层 ============ */
 .lp__win {
   position: fixed;
   left: 0;
@@ -221,7 +289,7 @@
   border: 1px solid var(--ink-line);
   border-bottom: none;
   border-radius: 20px 20px 0 0;
-  padding: 22px 20px calc(env(safe-area-inset-bottom) + 22px);
+  padding: 22px 20px calc(var(--safe-bottom, 0px) + 22px);
   width: 100%;
   box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.45);
   animation: slideUp 0.24s ease-out;

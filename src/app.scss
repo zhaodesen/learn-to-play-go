@@ -156,7 +156,29 @@ page {
   }
 }
 
-/* ============ 数子结果卡(关卡页 / 对弈页共用) ============ */
+/* ============ 掌握度标签(目录 / 报告 / 课时小结共用) ============ */
+.mastery {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+.mastery--high {
+  color: #0d2018;
+  background: linear-gradient(180deg, var(--jade), var(--jade-deep));
+}
+.mastery--mid {
+  color: #2a1d06;
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+}
+.mastery--low {
+  color: #241405;
+  background: linear-gradient(180deg, #d8a86e, var(--ochre));
+}
+
+/* ============ 数子结果卡(课时小结展示用) ============ */
 .scorebox {
   width: 100%;
 }

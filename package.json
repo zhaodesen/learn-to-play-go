@@ -2,7 +2,7 @@
   "name": "learn-to-play-go",
   "version": "1.0.0",
   "private": true,
-  "description": "学下围棋 - 围棋入门闯关小程序",
+  "description": "围棋入门课 - 零基础围棋系统教学小程序",
   "templateInfo": {
     "name": "default",
     "typescript": true,
@@ -47,6 +47,7 @@
   "devDependencies": {
     "@babel/core": "^7.24.4",
     "@babel/plugin-proposal-class-properties": "7.18.6",
+    "@babel/preset-react": "^7.24.1",
     "@tarojs/cli": "4.2.0",
     "@tarojs/plugin-generator": "4.2.0",
     "@tarojs/taro-loader": "4.2.0",
@@ -60,6 +61,7 @@
     "sass": "^1.75.0",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
     "typescript": "^5.4.5",
+    "vite": "4.5.14",
     "vitest": "^3.2.4",
     "webpack": "5.91.0"
   }

@@ -1,5 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: '自由对弈',
+  navigationBarTitleText: '术语词典',
   navigationStyle: 'custom',
-  disableScroll: true,
 })

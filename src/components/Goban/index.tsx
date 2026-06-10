@@ -3,7 +3,7 @@
 // 动画(呼吸提示圈 / 脉冲 / 落子缩放)用 canvas.requestAnimationFrame 按需驱动,静止时只画一帧。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Taro from '@tarojs/taro'
-import { Canvas, View } from '@tarojs/components'
+import { Canvas, Image, View } from '@tarojs/components'
 import type { CanvasTouchEvent } from '@tarojs/components'
 import type { Board, Point, Stone } from '../../engine/types'
 import type { Owner } from '../../engine/score'
@@ -42,6 +42,12 @@ export interface GobanProps {
    * 仅在空交叉点上画:黑空=深色块、白空=浅色块、单官=灰点。传入则进入"数子展示"。
    */
   territory?: Owner[] | null
+  /**
+   * 冻结棋盘:页面浮层打开时设为 true。
+   * 小程序 canvas 在部分环境强制浮在最上层会盖住弹框,冻结时先把当前画面
+   * 快照成图片顶替显示、卸载 canvas;解冻后 canvas 重挂并画好第一帧,再撤掉快照 —— 无闪烁。
+   */
+  frozen?: boolean
 }
 
 const CELL = 30
@@ -127,11 +133,13 @@ export function Goban(props: GobanProps) {
     showCoordinates = false,
     lastMove = null,
     territory = null,
+    frozen = false,
   } = props
 
   const size = board.size
   const dim = PAD * 2 + (size - 1) * CELL
   const [pending, setPending] = useState<Point | null>(null)
+  const [snapshot, setSnapshot] = useState<string | null>(null)
   const idRef = useRef(`goban-${++uid}`)
   const viewRef = useRef<CanvasView | null>(null)
   const loopingRef = useRef(false)
@@ -192,8 +200,7 @@ export function Goban(props: GobanProps) {
   }
 
   // ===== 画布初始化 =====
-  useEffect(() => {
-    destroyedRef.current = false
+  function initCanvas(onReady?: () => void) {
     let tries = 0
     const init = () => {
       if (destroyedRef.current) return
@@ -208,20 +215,69 @@ export function Goban(props: GobanProps) {
             return
           }
           const canvas = r.node
-          const dpr = Taro.getSystemInfoSync().pixelRatio || 2
+          // dpr 封顶 2:3x 屏上 2x 已足够清晰,像素量(填充率/内存)省一半以上
+          const dpr = Math.min(Taro.getSystemInfoSync().pixelRatio || 2, 2)
           canvas.width = Math.floor(r.width * dpr)
           canvas.height = Math.floor(r.height * dpr)
           viewRef.current = { canvas, ctx: canvas.getContext('2d'), w: r.width, dpr }
           requestDraw()
+          onReady?.()
         })
     }
     Taro.nextTick(init)
+  }
+
+  useEffect(() => {
+    destroyedRef.current = false
+    if (!frozen) initCanvas()
     return () => {
       destroyedRef.current = true
       loopingRef.current = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 冻结/解冻:冻结时先把当前画面快照成图片再卸载 canvas;解冻后画好第一帧再撤快照
+  const frozenPrevRef = useRef(frozen)
+  useEffect(() => {
+    if (frozen === frozenPrevRef.current) return
+    frozenPrevRef.current = frozen
+    if (frozen) {
+      const v = viewRef.current
+      let url: string | null = null
+      try {
+        url = v?.canvas?.toDataURL ? v.canvas.toDataURL('image/png') : null
+      } catch {
+        url = null
+      }
+      loopingRef.current = false
+      viewRef.current = null
+      setSnapshot(url)
+    } else {
+      // canvas 本次 render 已重新挂载,初始化并画好第一帧后再撤掉快照
+      initCanvas(() => setSnapshot(null))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frozen])
+
+  // 初次进入就处于冻结(如课时页默认弹出「本课要点」):canvas 从未挂载,没有快照可用。
+  // 用离屏画布把当前局面直接渲染成图片显示,保证弹框后面也能看到真实棋盘。
+  useEffect(() => {
+    if (!frozen || snapshot || viewRef.current) return
+    try {
+      const create = (Taro as any).createOffscreenCanvas
+      if (typeof create !== 'function') return
+      const off = create({ type: '2d', width: dim * 2, height: dim * 2 })
+      const octx = off?.getContext?.('2d')
+      if (!octx || typeof off.toDataURL !== 'function') return
+      octx.setTransform(2, 0, 0, 2, 0, 0)
+      paintStaticScene(octx, { board, markers, lastMove })
+      setSnapshot(off.toDataURL('image/png'))
+    } catch {
+      /* 不支持离屏画布:保持纸色占位 */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frozen, snapshot, board, markers, lastMove])
 
   // 任何会影响画面的状态变化都触发重绘(必要时启动动画循环)
   useEffect(() => {
@@ -265,6 +321,29 @@ export function Goban(props: GobanProps) {
   }
 
   // ===== 绘制 =====
+  // 静态盘面(木纹/网格/星位)缓存:只在首帧或尺寸变化时画一次,
+  // 之后每帧一条 drawImage 指令搬运,动画期间不再重复画 26 条木纹曲线。
+  const bgRef = useRef<{ key: string; canvas: any } | null>(null)
+
+  function ensureBgCache(v: CanvasView, bsize: number, bdim: number): any {
+    const key = `${bsize}:${v.canvas.width}`
+    if (bgRef.current?.key === key) return bgRef.current.canvas
+    try {
+      const create = (Taro as any).createOffscreenCanvas
+      if (typeof create !== 'function') return null
+      const off = create({ type: '2d', width: v.canvas.width, height: v.canvas.height })
+      const octx = off?.getContext?.('2d')
+      if (!octx) return null
+      const scale = v.canvas.width / bdim
+      octx.setTransform(scale, 0, 0, scale, 0, 0)
+      paintBoardBase(octx, bsize, bdim)
+      bgRef.current = { key, canvas: off }
+      return off
+    } catch {
+      return null // 旧基础库不支持离屏画布:退回每帧直绘
+    }
+  }
+
   function drawFrame() {
     const v = viewRef.current
     if (!v || !v.ctx) return
@@ -277,30 +356,14 @@ export function Goban(props: GobanProps) {
 
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.clearRect(0, 0, v.canvas.width, v.canvas.height)
-    ctx.setTransform(scale, 0, 0, scale, 0, 0)
 
-    // 棋盘底(圆角宣纸)
-    roundRect(ctx, 0, 0, bdim, bdim, 8)
-    ctx.fillStyle = C.paper
-    ctx.fill()
-
-    // 网格线
-    ctx.strokeStyle = C.line
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    for (let i = 0; i < bsize; i++) {
-      ctx.moveTo(px(0), px(i))
-      ctx.lineTo(px(bsize - 1), px(i))
-      ctx.moveTo(px(i), px(0))
-      ctx.lineTo(px(i), px(bsize - 1))
-    }
-    ctx.stroke()
-
-    // 星位
-    ctx.fillStyle = C.star
-    for (const p of starPoints(bsize)) {
-      circle(ctx, px(p.x), px(p.y), CELL * 0.1)
-      ctx.fill()
+    const bg = ensureBgCache(v, bsize, bdim)
+    if (bg) {
+      ctx.drawImage(bg, 0, 0)
+      ctx.setTransform(scale, 0, 0, scale, 0, 0)
+    } else {
+      ctx.setTransform(scale, 0, 0, scale, 0, 0)
+      paintBoardBase(ctx, bsize, bdim)
     }
 
     // 坐标
@@ -396,43 +459,7 @@ export function Goban(props: GobanProps) {
     }
 
     // 教学标注
-    for (const m of s.markers) {
-      const cx = px(m.x)
-      const cy = px(m.y)
-      const col = m.color ?? C.cinnabar
-      ctx.strokeStyle = col
-      ctx.lineWidth = 2.5
-      if (m.kind === 'circle') {
-        circle(ctx, cx, cy, CELL * 0.3)
-        ctx.stroke()
-      } else if (m.kind === 'square') {
-        ctx.strokeRect(cx - CELL * 0.28, cy - CELL * 0.28, CELL * 0.56, CELL * 0.56)
-      } else if (m.kind === 'cross') {
-        ctx.lineWidth = 2.6
-        ctx.lineCap = 'round'
-        ctx.beginPath()
-        ctx.moveTo(cx - CELL * 0.24, cy - CELL * 0.24)
-        ctx.lineTo(cx + CELL * 0.24, cy + CELL * 0.24)
-        ctx.moveTo(cx - CELL * 0.24, cy + CELL * 0.24)
-        ctx.lineTo(cx + CELL * 0.24, cy - CELL * 0.24)
-        ctx.stroke()
-      } else if (m.kind === 'triangle') {
-        const r = CELL * 0.3
-        ctx.beginPath()
-        ctx.moveTo(cx, cy - r)
-        ctx.lineTo(cx - r * 0.87, cy + r * 0.5)
-        ctx.lineTo(cx + r * 0.87, cy + r * 0.5)
-        ctx.closePath()
-        ctx.stroke()
-      } else {
-        const onStone = getCell(s.board, m.x, m.y)
-        ctx.fillStyle = onStone === 'B' ? '#ffffff' : onStone === 'W' ? '#000000' : col
-        ctx.font = '700 16px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(m.label ?? '', cx, cy)
-      }
-    }
+    drawMarkers(ctx, s.markers, s.board)
 
     // 待确认虚影:十字定位线 + 半透明棋子 / 禁入提示
     if (s.pending) {
@@ -486,33 +513,6 @@ export function Goban(props: GobanProps) {
         ctx.stroke()
       }
     }
-  }
-
-  function drawStone(ctx: any, cx: number, cy: number, r: number, c: Stone, alpha: number) {
-    ctx.globalAlpha = alpha
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'
-    ctx.shadowOffsetX = 0.5
-    ctx.shadowOffsetY = 1.5
-    ctx.shadowBlur = 1.5
-    const grad = ctx.createRadialGradient(
-      cx - r * 0.3, cy - r * 0.44, r * 0.1,
-      cx, cy, r * (c === 'B' ? 1.56 : 1.64),
-    )
-    const cols = c === 'B' ? C.stoneB : C.stoneW
-    grad.addColorStop(0, cols[0])
-    grad.addColorStop(c === 'B' ? 0.45 : 0.68, cols[1])
-    grad.addColorStop(1, cols[2])
-    ctx.fillStyle = grad
-    circle(ctx, cx, cy, r)
-    ctx.fill()
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetX = 0
-    ctx.shadowOffsetY = 0
-    ctx.strokeStyle = c === 'W' ? '#9a9a9a' : '#000000'
-    ctx.lineWidth = c === 'W' ? 0.8 : 0.4
-    ctx.stroke()
-    ctx.globalAlpha = 1
   }
 
   // ===== 触摸 =====
@@ -581,18 +581,25 @@ export function Goban(props: GobanProps) {
       confirmTone = 'warn'
   }
 
+  // 冻结期间:快照未拍到手前保留 canvas(拍完立刻卸载);从未初始化过则直接显示占位
+  const canvasAlive = !frozen || (!snapshot && !!viewRef.current)
+
   return (
     <View className='goban'>
       <View className='goban__square'>
-        <Canvas
-          type='2d'
-          id={idRef.current}
-          canvasId={idRef.current}
-          className='goban__canvas'
-          disableScroll={interactive}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        />
+        {canvasAlive && (
+          <Canvas
+            type='2d'
+            id={idRef.current}
+            canvasId={idRef.current}
+            className='goban__canvas'
+            disableScroll={interactive}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          />
+        )}
+        {snapshot && <Image className='goban__snapshot' src={snapshot} />}
+        {!canvasAlive && !snapshot && <View className='goban__ghost' />}
       </View>
 
       {/* 二次确认弹框:浮在所点棋子的正上方(靠近顶行时翻到下方) */}
@@ -626,9 +633,137 @@ export function Goban(props: GobanProps) {
   )
 }
 
+/** 静态盘面:素色宣纸底 + 网格 + 星位(内容确定,可整体缓存) */
+function paintBoardBase(ctx: any, bsize: number, bdim: number) {
+  const pxl = (i: number) => PAD + i * CELL
+
+  // 棋盘底(圆角宣纸)
+  roundRect(ctx, 0, 0, bdim, bdim, 8)
+  ctx.fillStyle = C.paper
+  ctx.fill()
+
+  // 网格线
+  ctx.strokeStyle = C.line
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  for (let i = 0; i < bsize; i++) {
+    ctx.moveTo(pxl(0), pxl(i))
+    ctx.lineTo(pxl(bsize - 1), pxl(i))
+    ctx.moveTo(pxl(i), pxl(0))
+    ctx.lineTo(pxl(i), pxl(bsize - 1))
+  }
+  ctx.stroke()
+
+  // 星位
+  ctx.fillStyle = C.star
+  for (const p of starPoints(bsize)) {
+    ctx.beginPath()
+    ctx.arc(pxl(p.x), pxl(p.y), CELL * 0.1, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
 function circle(ctx: any, x: number, y: number, r: number) {
   ctx.beginPath()
   ctx.arc(x, y, r, 0, Math.PI * 2)
+}
+
+function drawStone(ctx: any, cx: number, cy: number, r: number, c: Stone, alpha: number) {
+  ctx.globalAlpha = alpha
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'
+  ctx.shadowOffsetX = 0.5
+  ctx.shadowOffsetY = 1.5
+  ctx.shadowBlur = 1.5
+  const grad = ctx.createRadialGradient(
+    cx - r * 0.3, cy - r * 0.44, r * 0.1,
+    cx, cy, r * (c === 'B' ? 1.56 : 1.64),
+  )
+  const cols = c === 'B' ? C.stoneB : C.stoneW
+  grad.addColorStop(0, cols[0])
+  grad.addColorStop(c === 'B' ? 0.45 : 0.68, cols[1])
+  grad.addColorStop(1, cols[2])
+  ctx.fillStyle = grad
+  circle(ctx, cx, cy, r)
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+  ctx.strokeStyle = c === 'W' ? '#9a9a9a' : '#000000'
+  ctx.lineWidth = c === 'W' ? 0.8 : 0.4
+  ctx.stroke()
+  ctx.globalAlpha = 1
+}
+
+/** 教学标注(圈/方/叉/三角/字母) */
+function drawMarkers(ctx: any, markers: Marker[], board: Board) {
+  const pxl = (i: number) => PAD + i * CELL
+  for (const m of markers) {
+    const cx = pxl(m.x)
+    const cy = pxl(m.y)
+    const col = m.color ?? C.cinnabar
+    ctx.strokeStyle = col
+    ctx.lineWidth = 2.5
+    if (m.kind === 'circle') {
+      circle(ctx, cx, cy, CELL * 0.3)
+      ctx.stroke()
+    } else if (m.kind === 'square') {
+      ctx.strokeRect(cx - CELL * 0.28, cy - CELL * 0.28, CELL * 0.56, CELL * 0.56)
+    } else if (m.kind === 'cross') {
+      ctx.lineWidth = 2.6
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(cx - CELL * 0.24, cy - CELL * 0.24)
+      ctx.lineTo(cx + CELL * 0.24, cy + CELL * 0.24)
+      ctx.moveTo(cx - CELL * 0.24, cy + CELL * 0.24)
+      ctx.lineTo(cx + CELL * 0.24, cy - CELL * 0.24)
+      ctx.stroke()
+    } else if (m.kind === 'triangle') {
+      const r = CELL * 0.3
+      ctx.beginPath()
+      ctx.moveTo(cx, cy - r)
+      ctx.lineTo(cx - r * 0.87, cy + r * 0.5)
+      ctx.lineTo(cx + r * 0.87, cy + r * 0.5)
+      ctx.closePath()
+      ctx.stroke()
+    } else {
+      const onStone = getCell(board, m.x, m.y)
+      ctx.fillStyle = onStone === 'B' ? '#ffffff' : onStone === 'W' ? '#000000' : col
+      ctx.font = '700 16px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(m.label ?? '', cx, cy)
+    }
+  }
+}
+
+/**
+ * 把当前局面(盘面 + 棋子 + 标注 + 最后一手)静态地画进任意 ctx。
+ * 供冻结快照使用:canvas 尚未挂载时也能用离屏画布渲染出真实棋盘图。
+ */
+function paintStaticScene(
+  ctx: any,
+  scene: { board: Board; markers: Marker[]; lastMove: Point | null },
+) {
+  const pxl = (i: number) => PAD + i * CELL
+  const bsize = scene.board.size
+  const bdim = PAD * 2 + (bsize - 1) * CELL
+  paintBoardBase(ctx, bsize, bdim)
+  for (let y = 0; y < bsize; y++) {
+    for (let x = 0; x < bsize; x++) {
+      const c = getCell(scene.board, x, y)
+      if (c) drawStone(ctx, pxl(x), pxl(y), CELL * 0.46, c, 1)
+    }
+  }
+  if (scene.lastMove) {
+    const c = getCell(scene.board, scene.lastMove.x, scene.lastMove.y)
+    if (c) {
+      ctx.fillStyle = c === 'B' ? '#ffffff' : '#000000'
+      circle(ctx, pxl(scene.lastMove.x), pxl(scene.lastMove.y), CELL * 0.14)
+      ctx.fill()
+    }
+  }
+  drawMarkers(ctx, scene.markers, scene.board)
 }
 
 function roundRect(ctx: any, x: number, y: number, w: number, h: number, r: number) {

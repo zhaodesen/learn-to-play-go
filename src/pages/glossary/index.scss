@@ -1,0 +1,100 @@
+/* ============ 术语词典页 ============ */
+.gl {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--nav-bottom, 60px) + 2px) 16px 0;
+  box-sizing: border-box;
+}
+
+.gl__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.gl__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ink-600);
+  border: 1px solid var(--ink-line);
+  color: var(--gold-soft);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  padding-bottom: 3px;
+  flex-shrink: 0;
+}
+.gl__back--ghost {
+  opacity: 0;
+  pointer-events: none;
+}
+.gl__name {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-brush);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-200);
+  letter-spacing: 3px;
+}
+
+.gl__search {
+  margin-bottom: 12px;
+}
+.gl__input {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--ink-650);
+  border: 1px solid var(--ink-line);
+  color: var(--text-100);
+  font-size: 14px;
+}
+.gl__placeholder {
+  color: var(--text-400);
+}
+
+.gl__list {
+  flex: 1;
+  min-height: 0;
+}
+.gl__item {
+  padding: 14px 14px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ink-line-soft);
+  margin-bottom: 8px;
+}
+.gl__term {
+  display: block;
+  font-family: var(--font-brush);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gold-soft);
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.gl__short {
+  display: block;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-200);
+}
+.gl__empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-400);
+  font-size: 13px;
+}
+.gl__foot {
+  text-align: center;
+  padding: 12px 0 calc(var(--safe-bottom, 0px) + 24px);
+  color: var(--text-400);
+  font-size: 11px;
+}

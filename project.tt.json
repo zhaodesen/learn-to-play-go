@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "./dist",
   "projectname": "learn-to-play-go",
-  "description": "学下围棋 - 围棋入门闯关",
+  "description": "围棋入门课 - 零基础围棋系统教学",
   "appid": "testappid",
   "setting": {
     "es6": false,

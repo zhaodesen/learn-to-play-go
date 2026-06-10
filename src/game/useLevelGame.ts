@@ -46,12 +46,10 @@ export interface UseLevelGame {
  * 管理单个关卡的一局游戏。换关卡时请给使用它的组件设置 key={level.id},
  * 让 hook 随组件重新挂载、状态自动重置。
  * @param onWin 过关回调,参数为本次获得的星级(1~3)
- * @param onPlayResult 每次有效交互的结果回调,供上层播放音效("place" | "capture" | "wrong" | "win")
  */
 export function useLevelGame(
   level: Level,
   onWin?: (stars: number) => void,
-  onPlayResult?: (kind: 'place' | 'capture' | 'wrong' | 'win') => void,
 ): UseLevelGame {
   const toPlay = level.toPlay
   const [board, setBoard] = useState<Board>(() => buildBoard(level))
@@ -90,13 +88,11 @@ export function useLevelGame(
     setStars(s)
     setFeedback({ type: 'won', message: level.successText })
     onWin?.(s)
-    onPlayResult?.('win')
   }
 
   function markWrong(msg: string) {
     setWrong((w) => w + 1)
     setFeedback({ type: 'wrong', message: msg })
-    onPlayResult?.('wrong')
   }
 
   function play(x: number, y: number) {
@@ -125,14 +121,12 @@ export function useLevelGame(
     const captured = r.captured ?? []
 
     if (goal.kind === 'place-any-legal') {
-      onPlayResult?.('place')
       finishWin(r.board, { x, y })
       return
     }
 
     if (goal.kind === 'capture') {
       if (captured.length >= (goal.min ?? 1)) {
-        onPlayResult?.('capture')
         finishWin(r.board, { x, y })
       } else {
         markWrong('这一手没吃到子。看看对方哪一块只剩最后一口气,堵住它。')
@@ -142,7 +136,6 @@ export function useLevelGame(
 
     if (goal.kind === 'points') {
       if (inList(goal.points, x, y)) {
-        onPlayResult?.(captured.length > 0 ? 'capture' : 'place')
         finishWin(r.board, { x, y })
       } else {
         markWrong('不是这一手,再想想~')
@@ -156,7 +149,6 @@ export function useLevelGame(
         markWrong('这一手不对,换个点试试。')
         return
       }
-      onPlayResult?.(captured.length > 0 ? 'capture' : 'place')
 
       if (!node.next) {
         finishWin(r.board, { x, y })

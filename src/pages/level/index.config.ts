@@ -1,5 +1,5 @@
 export default definePageConfig({
-  navigationBarTitleText: '关卡',
+  navigationBarTitleText: '课时',
   navigationStyle: 'custom',
   disableScroll: true,
 })
