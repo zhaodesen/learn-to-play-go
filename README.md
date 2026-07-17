@@ -1,224 +1,65 @@
-# 围棋入门闯关小游戏 · Learn to Play Go
+# Learn to Play Go
 
-一个**从零教你下围棋**的纯前端 Web 小游戏。不懂围棋也能玩:跟着关卡一步步闯关,通关就算入门;每个术语都有大白话解释,落子时还有实时的友好提示。
+A browser-based learning game that teaches Go from the first liberty to a complete 9×9 game through short, interactive challenges.
 
-> **这份 README 同时是项目的上下文说明文档。** 如果你是接手本项目的开发者或 AI,请先通读「项目初衷」「关键设计决策」「技术架构」「工程约束」四节——它们记录了为什么这样做,改动前务必了解,避免推翻已定方向。
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
----
+## Why This Project
 
-## 一、项目初衷与背景
+Traditional Go material can feel abstract to complete beginners. This project turns the learning path into small levels with immediate visual feedback, plain-language terminology, and verified solutions. The goal is simple: finishing the course should be enough to understand the rules and play an introductory game.
 
-- **委托人**是一名程序员,**本人不懂围棋**,希望做一个能让零基础者(也包括他自己)"通关即入门、学会下围棋"的小游戏。
-- **要解决的痛点**:围棋规则看似简单但术语多、门槛高,传统教材对新手不友好,容易劝退。
-- **核心理念**:用**闯关式学习** + **实时友好的可视化提示** + **大白话术语解释**,把一个完全不懂围棋的人,平滑地带到"能下一盘"的入门水平。
-- 教学方法采用国际通行的**"吃子游戏"启蒙法**(先学吃子、再到死活围地),最适合做成由易到难的关卡。
+## Features
 
-## 二、目标
+- Seven progressive chapters covering liberties, captures, tactics, life and death, territory, and scoring
+- Interactive SVG boards for 9×9, 13×13, and 19×19 positions
+- Context-aware move previews for captures, illegal moves, and atari risk
+- Plain-language glossary embedded in lesson text
+- Multi-step solution trees for tactical problems
+- Area scoring with territory visualization
+- Local progress, star ratings, sound settings, and free-play mode
+- Lightweight rule-based opponent with no network access or machine-learning model
 
-- **最终目标**:玩家通关 = 围棋入门。客观标准是:理解吃子与基本死活,能在 **9 路小棋盘**上下完一整盘并大致数清胜负(达到业余入门级)。
-- **MVP 目标(已达成)**:跑通"引擎 + 闯关 + 高亮 + 术语 + 音效 + 存档"的完整玩法闭环,验证体验顺滑、框架可扩展。
-- 之后按章节持续填充关卡,直到覆盖"认识气 → 吃子 → 手筋 → 对杀 → 死活 → 围地 → 9 路实战"的完整入门路径。
+## Tech Stack
 
-## 三、玩法
+React 19 · TypeScript · Vite · SVG · Vitest · Web Audio · localStorage
 
-- **闯关**:每一关是一道**摆好的棋题**,玩家在正确的位置落子即过关;过关有 ★ 三星评价(一手过关无提示 = 3 星)。
-- **关卡判定有四种**(见 `src/levels/types.ts` 的 `LevelGoal`):
-  - `place-any-legal` —— 下任意合法的一手即过(用于"认识落子")
-  - `capture { min }` —— 这一手提到 ≥min 个子即过(吃子题)
-  - `points { points }` —— 下到指定正解点之一即过(下错则提示、不消耗盘面)
-  - `tree { root }` —— 走对**多步正解树**即过(征子等:玩家走正解 → 系统自动应一手 → 继续)
-- **聪明高亮(友好提示的核心)**:鼠标悬停空点时,显示半透明落子预览;**会被吃掉的对方子用红圈高亮**;禁入点画红色禁止符;若这一手下完自己只剩一口气(送叫吃)画黄色警告环;教学关可高亮推荐落子区域。
-- **术语词典**:教学文案里用 `[[术语]]` 标注的词会高亮,点一下弹出大白话解释;也有独立词典页。
-- **音效 / 存档**:Web Audio 实时合成落子、提子、过关、答错等音效(可开关 + 调音量);通关记录、星级、设置存在浏览器 localStorage。
-- **通关后竞技模式(规划中)**:计时赛、本地段位/晋级赛、9 路人机对弈。
-
-## 四、围棋教学体系(关卡设计依据)
-
-为什么先教吃子:吃子规则直观、有即时成就感,且吃子手筋天然适合做成关卡。整体由易到难分 7 章,通关即入门:
-
-| 章节 | 内容 | 学到的能力 |
-|---|---|---|
-| 0 认识围棋 | 落子、气、第一次吃子 | 看懂棋盘和"气" |
-| 1 提子入门 | 吃边/中/整块子、辨别弱块 | 会吃子、会数气 |
-| 2 吃子手筋 | 关门吃、双打吃、征子、枷吃、扑、倒扑、接不归 | 真正的"棋感"起点 |
-| 3 逃子与对杀 | 数气、紧气、比气、有眼杀无眼 | 算路、对杀 |
-| 4 连接与切断 | 断点、虎口、双、跳 | 棋形概念 |
-| 5 死活基础 | 真假眼、两眼活、基本死活形 | 一块棋的生死 |
-| 6 围地与终局 | 占角守边、单官、数子判胜负 | 完整一盘的思路 |
-| 🎓 毕业 | 9 路完整对局 + 数清胜负 | **入门达成** |
-
-**核心概念速查**(术语全集见 `src/data/glossary.ts`):
-- **气**:一颗/一块棋子紧邻的空交叉点。角 2 口、边 3 口、中 4 口。气尽被提。
-- **提子**:把没气的对方棋子拿走。
-- **禁入点(自杀)**:下完自己没气、又提不到对方,不允许下。
-- **打劫(ko)**:防止互提循环——刚被提的一方不能立刻提回。
-- **眼 / 做活**:围出两个真眼即活棋,永不被吃。
-
-## 五、关键设计决策(改动前请先读)
-
-这些是和委托人逐条确认过的方向,**不要随意推翻**:
-
-1. **纯前端、无后端、无 AI、无登录** —— 最快落地、可静态部署。入门关卡靠预设正解判定,根本不需要 AI。
-2. **不做"全盘高亮所有可落点"** —— 围棋几乎每个空点都合法,361 点全亮 = 视觉噪音、廉价。改用**"聪明高亮"**(只在有信息量处提示:禁入点、会被提的子、送叫吃、悬停预览)。这是刻意的产品决策,**别改回全盘高亮**。
-3. **"排位赛" = 本地段位/晋级赛** —— 纯前端无服务器,做不了真在线对战/全球榜。用本机段位升降级模拟排位体验;真在线榜需要后端(暂不做)。
-4. **"人机对弈" = 规则启发式机器人** —— 委托人明确**不要神经网络/不联网/不加载模型**。用几百行 if-else(会吃子/逃子/占角边/不自填眼)的弱对手即可,正好当新手陪练。**不要引入 KataGo / 神经网络;MCTS 也已被否决**。
-5. **以 9 路为主** —— 9×9 小棋盘一盘快、好数胜负,最适合入门和毕业实战。
-
-## 六、技术架构
-
-**技术栈**:Vite + React 19 + TypeScript · 自绘 SVG 棋盘 · 自研规则引擎 · Vitest · localStorage。
-
-**规则引擎**(`src/engine/board.ts`,与 UI 完全解耦、数据不可变):
-- 用洪水填充(flood-fill)算一块棋的气;落子流程为:**落子 → 提走相邻无气的对方块 → 再判己方是否自杀**(所以"提子优先于自杀");打劫用经典"简单劫"(提一子且己方成单子单气时,禁对方立刻回提)。
-- 主要 API:
-  - `placeStone(board,x,y,color,koPoint?)` → `{ ok, error?, board?, captured?, koPoint? }`
-  - `analyzeMove(board,x,y,color,koPoint?)` → `{ legal, error?, captured, selfLiberties }`(**落子前**预览,给 UI 做高亮/提示用,不改棋盘)
-  - `getGroup` / `countLiberties` / `createBoard` / `opponent` / `pointKey`
-
-**关卡数据格式**(`src/levels/types.ts`,数据与代码分离,加关卡=加数据)。示例(双打吃):
-```ts
-{
-  id: 'c2-2', chapterIndex: 2, chapterTitle: '吃子手筋', index: 2,
-  title: '双打吃', boardSize: 9, toPlay: 'B',
-  stones: [{ x: 2, y: 4, c: 'W' }, /* …初始摆子… */],
-  goal: { kind: 'capture', min: 2 },     // 见上文四种判定
-  teach: '…一手下在中间,两颗白子同时没气,这叫 [[双打吃]]。',
-  hint: '两颗白子之间那个点。',
-  hintPoints: [{ x: 3, y: 4 }],
-  markers: [{ x: 2, y: 4, kind: 'circle', color: '#e23b3b' }],
-  successText: '一手叫吃两块,对方顾此失彼!',
-}
-```
-多步题用 `goal.kind: 'tree'`,正解树节点 `SolutionNode = { answers, reply?, next? }`:`answers` 是玩家正解点,`reply` 是玩家走对后系统自动应的一手,`next` 是下一步节点(无 `next` 表示这一手即通关)。
-
-**单关状态机**:`src/game/useLevelGame.ts` 管理落子判定、系统应手、提示、星级,并通过回调向上层触发音效;换关时给 `LevelPlayer` 设 `key={level.id}` 让状态自动重置。
-
-## 七、工程约束(写代码前必看)
-
-- `tsconfig.app.json` 开启了 **`erasableSyntaxOnly`** → **不能用 `enum`、参数属性等**会生成运行时代码的 TS 语法;用 union 类型 / `const` 对象代替。
-- 开启了 **`verbatimModuleSyntax`** → 仅类型的导入**必须** `import type { … }`。
-- 开启了 `noUnusedLocals` / `noUnusedParameters` → 不能有未使用的变量/参数。
-- **新增任何吃子题 / 正解关卡后,必须在 `src/levels/data.test.ts` 加一条校验**(在正解点落子断言合法且吃子数达标)。手摆坐标极易出错,尤其是**征子等多步题,务必用引擎逐步跑一遍验证**。
-- 引擎保持**不可变**(返回新棋盘,不原地改),便于悔棋与正解树回溯。
-
-## 八、运行 / 测试 / 构建
+## Getting Started
 
 ```bash
-npm install      # 安装依赖
-npm run dev      # 本地开发预览(默认 http://localhost:5173)
-npm test         # 运行单元测试(引擎 + 关卡正解校验)
-npm run build    # 类型检查 + 打包,产物在 dist/ ,可直接静态托管
+npm install
+npm run dev
 ```
 
-## 九、开发进度(全流程任务)
+## Development
 
-> ✅ = 已完成　⬜ = 待办
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm test` | Run engine and level-validation tests |
+| `npm run lint` | Run ESLint |
+| `npm run build` | Type-check and create a production build |
 
-### 阶段 0 · 规划与设计 ✅
-- ✅ 研究围棋入门体系,设计 7 章约 70~90 关教学方案
-- ✅ 确定形态(Web)、范围(纯闯关不使用 AI)、技术选型
-- ✅ 确定体验增强方向(聪明高亮、音效、通关后竞技模式)
+## Architecture
 
-### 阶段 1 · MVP 核心闭环 ✅
-- ✅ 搭建 Vite + React + TS 项目骨架
-- ✅ 围棋规则引擎(气/提子/禁入点/打劫)+ 单元测试
-- ✅ 棋盘渲染与落子交互组件(SVG,支持 9/13/19 路)
-- ✅ 聪明高亮(落子预览/被提子/禁入点/送叫吃警告)
-- ✅ 音效系统(Web Audio 合成,开关 + 音量)
-- ✅ 术语词典(13 词数据 + 文案内可点击解释)
-- ✅ 关卡引擎与正解判定(四种判定方式)
-- ✅ 第 0~2 章共 7 个关卡内容
-- ✅ 进度 / 设置存档(localStorage)
-- ✅ 主界面组装(选关 / 关卡 / 词典 / 设置)+ 本地运行验证
-
-> 阶段 1 验收:`npm run build` 零类型错误;`npm test` 19 项通过(12 引擎 + 7 关卡校验);浏览器端到端走通"选关 → 落子 → 吃子提子 → 过关三星 → 下一关 → 术语弹层",无报错。
-
-### 阶段 2 · 关卡内容扩充 ✅(第 0~6 章教学内容全部完成)
-- ✅ 征子(多步 tree,已用引擎逐手核对正解线 + 浏览器端到端走通,撞角提 6 子)
-- ✅ 枷吃(多步 tree,隔一路松网;用通用吃子搜索穷举证明"白怎么逃都被提",演示线提 3 子;引擎 + 浏览器双重验证)
-- ✅ 倒扑(多步 tree,扑入送子 → 白提 → 回扑提整块 5 子;引擎 + 浏览器双重验证)
-- ✅ 接不归(`capture` 单手;两块白共用唯一接点,黑点死提 3 子;并核对"白若先连整块仍只剩一口气,黑再提 4 子")
-- ✅ **第 2 章完成**:关门吃 / 双打吃 / 征子 / 枷吃 / 倒扑 / 接不归(扑的概念已含在倒扑/接不归里)
-- ✅ 正解校验测试升级:tree 关现在按 `useLevelGame` 流程逐手跑通整棵正解树(见 `data.test.ts` 第二个 describe);新增 `expectNoCapture` 支持"逃子/占点"类非吃子正解(改为校验落子后己方气数)
-- ✅ **第 3 章完成**(逃子与对杀):逃子(长气逃出,非吃子)、数气(数清大块只剩一口气,点死提 5 子)、对杀(semeai:各 2 气,黑先快一气胜)、有眼杀无眼(黑大龙带一只真眼,白填眼/公气皆自杀,黑紧两手提白)
-  - 对杀两关均用**对称对杀搜索器**穷举验证(黑想提白、白想提黑各走最优):对杀关证黑必胜;有眼关证"有眼→黑必胜(连白先都赢)、去眼→双活杀不掉",从而坐实"眼是胜负手"
-  - 新增 tree 的 `reply: null` 用法(对方无法应手时"停一手",用于有眼杀无眼);`useLevelGame` 已原生支持,`data.test` 同步放宽
-- ✅ **第 4 章完成**(连接与切断):切断(把对方斜搭两子分成各 2 气的两块)、接断点(补回自己唯一断点,白确能在该点切断)、虎口(吃子并做成"切不断的连接")、双(被两面贴住时长一手并成 2→4 气)、跳(单关跳沿边快速展开)
-  - 4 个连接/切断关用 `points + expectNoCapture`(引擎校验落子后己方气≥2,即真连上/真站稳);虎口用 `capture`(提 1 子)。全部经引擎校验 + 浏览器端到端走通(c4-1 落子→过关 ★★★)
-  - 新增术语:断点 / 切断 / 接 / 虎口 / 双 / 跳(`src/data/glossary.ts`)
-- ✅ **第 5 章完成**(死活基础):两眼才算活(直三做活)、点杀破眼形(直三点中)、弯三点角、丁四点中央、做活抢要害(弯三)。2 关做活 + 3 关点杀,涵盖"真假眼 / 两眼活 / 基本死活形"
-  - **新增死活求解器** `src/engine/lifedeath.ts`:`isAlive`(两眼活棋证书,见下"真假眼")+ `attackerCanKill`(有界穷举,动态重算眼位区域、含扑入回提)。每关用它穷举证明"急所唯一、下对则活/死成立"(见 `data.test.ts`「死活关求解器校验」+ `lifedeath.test.ts` 10 项自检)
-  - **真假眼判定**(`isEyeFor`):一只眼是不是真眼,除了直邻全是己方,还要看**对角控制**——角/边要求对角全归己方、正中允许 1 个坏角;空对角点若本身被己方直邻包住(也是一只己方眼,如弯三两眼)也算受控,故相邻共享对角的两真眼不会被误杀。这避免了 `isAlive` 把假眼误报成活。
-  - 死活搜索的两个工程要点:① 眼位区域必须**每个节点动态重算**(扑+回提会让眼位点重新变空);② 死活搜索是图历史相关(GHI),**刻意不做置换表缓存**——能安全缓存的只有"终局点"(本就秒算),掺了路径判重的内部结论一旦缓存就会被另一条路径错误复用(实测会把"直三黑先净杀"误判成活)。改以"眼位区域有 `REGION_CAP` 上限 + 硬 `budget` 节点上限"保证搜索恒定廉价、绝不挂死,无需缓存。
-  - 关卡新增 `lifeDeath` 字段(`types.ts`):标记目标块与 kill/live,data.test 跳过通用断言改走求解器
-  - 新增术语:真眼 / 假眼 / 死活 / 急所 / 点杀。全部经引擎校验 + 浏览器端到端走通(c5-1 做活、c5-2 点杀均落子→★★★)
-- ✅ **引擎新增终局数子与胜负判定** `src/engine/score.ts`:采用「数子法 / 区域计分(area scoring,中国规则)」——洪水填充把空点切成区域,只贴一色=该方空、两色都贴=单官(自动判中立);区域 = 子数 + 围空,白方加贴目(默认 9 路 7 目),输出胜方/领先子数 + 每点归属 `ownership`(供着色)。`score.test.ts` 5 项自检。
-- ✅ **第 6 章完成**(围地与终局):金角银边(占空角)、守边挡下(封缺口)、收单官(填中立点)、数子判胜负(黑大胜的数子入门)、🎓 毕业实战(终局补断点,黑 45:白 43 含贴目,黑胜 2 子)
-  - **数子展示**:`Level.reveal = { kind:'score', komi?, certifyWinner? }`;过关后 `LevelPlayer` 用 `scoreArea` 着色棋盘(黑空深块/白空浅块/单官灰点,见 `Goban` 的 `territory` 属性)并弹出黑白子数 + 胜负面板;`certifyWinner` 命中则显示「🎓 入门认证通过」(毕业关)
-  - 毕业关刻意用「一手不补则整片空漏成单官、补上则净胜 2 子」的终局,把"收官补断点 + 数子见真章"压成最后一手;盘面与前后胜负均用脚本 + `data.test.ts`「终局数子关 reveal 校验」核对
-  - 新增术语:围地 / 金角银边 / 挡 / 单官 / 数子 / 贴目。引擎校验 + 浏览器端到端走通(c6-5 落子→★★★、数子着色 + 黑胜 2 子 + 入门认证,无报错)
-  - ⏳ 注:目前毕业关是「静态终局补一手 + 数子认证」,尚非「人机完整对局」——完整对局依赖阶段 3 的机器人,待后续接入
-
-### 阶段 3 · 通关后竞技模式 🚧
-- ✅ **9 路规则机器人对弈(弱对手,纯启发式,非 AI)** `src/engine/bot.ts`:`chooseBotMove(board,color,ko?)` 遍历空点加权打分取最高分,返回 `null` 表示停一手(pass)。启发式优先级:吃子 > 逃子(救险)> 叫吃 > 占边角/连接 > 单纯贴补;三条安全闸:不下非法点、不自填真眼(复用 `isEyeFor`)、不无谓自送叫吃。用"区域边界墙子数 ≥4"判断真被围死的地,从而终局自动 pass、开局不误判。`bot.test.ts` 7 项(吃/逃/提/不填眼/安全闸/终局 pass/开局占角)
-- ✅ **人机对弈界面** `src/components/PlayView.tsx`:人执黑先行、电脑执白(贴目 7),`useEffect` 驱动机器人回合(450ms"思考");支持悔棋 / 停一手 / 认输 / 再来一盘;双方连续 pass → 自动 `scoreArea` 数子分胜负 + 棋盘着色。顶栏新增「自由对弈」入口。浏览器端到端走通(落子→机器人应手→认输/数子,无报错)
-- ⬜ 计时赛
-- ⬜ 本地段位 / 晋级赛
-- ⬜ 机器人增强:对杀/做眼/官子意识(目前是"会下但很弱"的接触型陪练)
-
-### 阶段 4 · 体验补强 ⬜
-- ⬜ 背景音乐(设置已预留字段)
-- ⬜ 连击升调音、过关动画
-
-## 十、项目结构
-
-```
+```text
 src/
-  engine/        围棋规则引擎(纯逻辑,与 UI 解耦)
-    types.ts       核心类型
-    board.ts       落子 / 算气 / 提子 / 禁入点 / 打劫
-    board.test.ts  引擎单元测试
-    lifedeath.ts   死活求解器(两眼判活 + 有界穷举点杀);供死活关校验/未来机器人复用
-    lifedeath.test.ts 求解器自检(直三/直二/直四/两眼等规范形)
-    score.ts       终局数子(area scoring:子+空,单官自动判中立,含贴目与胜负)
-    score.test.ts  数子自检(空盘/竖墙/单官/贴目改写胜负/着色一致)
-    bot.ts         9 路规则机器人(加权启发式弱对手:吃/逃/叫吃/占地,不自填眼)
-    bot.test.ts    机器人自检(吃/逃/提/不填眼/安全闸/终局 pass/开局占角)
-  levels/        关卡
-    types.ts       关卡 / 正解树类型
-    data.ts        关卡内容数据
-    data.test.ts   关卡正解自动校验
-  game/
-    useLevelGame.ts  单关状态机(落子判定 / 系统应手 / 提示 / 星级)
-  components/    UI 组件
-    Goban.tsx        棋盘 + 聪明高亮 + 终局数子着色(territory)
-    LevelPlayer.tsx  关卡游戏页(含过关数子展示)
-    PlayView.tsx     人机自由对弈页(对接 bot.ts + score.ts)
-    TeachText.tsx    教学文案(解析 [[术语]] / **粗体**)
-    MapView.tsx      选关地图
-    GlossaryView.tsx 术语词典页
-    SettingsView.tsx 设置页
-  data/glossary.ts   术语词典数据
-  audio/sound.ts     Web Audio 音效合成
-  storage/progress.ts localStorage 进度与设置
-  App.tsx        顶层组装与轻量路由
+├── engine/       # Immutable rules, life-and-death, scoring, and bot logic
+├── levels/       # Level data, goal types, and solution validation
+├── game/         # Per-level state machine
+├── components/   # Board, level map, player, glossary, and free play
+├── data/         # Go terminology
+├── audio/        # Synthesized sound effects
+└── storage/      # Progress and settings
 ```
 
----
+## Design Principles
 
-## 给接手的 AI / 开发者:最重要的几条
+- Keep the learning flow frontend-only: no account, backend, or online dependency.
+- Highlight useful information instead of illuminating every legal point.
+- Keep the rules engine immutable so moves can be tested and replayed safely.
+- Validate every new level with automated solution tests.
+- Keep the opponent deterministic and rules-based; do not introduce neural models.
 
-1. 这是**纯前端、无 AI**的围棋入门**教学闯关**游戏,目标是"通关 = 入门会下棋"。
-2. 提示用**聪明高亮**,**不要全盘高亮**;"排位"是**本地段位制**;"人机对弈"用**规则机器人**,**不要神经网络**。
-3. 加关卡 = 加 `src/levels/data.ts` 数据;**务必同步在 `data.test.ts` 加正解校验**,多步题(征子)要用引擎跑通验证。
-4. 注意 TS 约束:**不能用 `enum`**、类型须 `import type`、不留未使用变量。
-5. 第 2~5 章均已完成(吃子手筋 + 逃子/对杀 + 连接切断 + 死活基础,共 22 关经引擎+浏览器验证)。死活关靠新求解器 `src/engine/lifedeath.ts` 穷举证明。下一步:**第 6 章 围地与终局**,需先给引擎加**终局数子与胜负判定**(目前引擎只有落子/提子/算气,尚无数地与胜负)—— 可复用 `lifedeath` 的洪水填充思路做"数空属谁"。
+## Credits
 
----
-
-## 音乐版权 / Credits
-
-- 对局背景音乐:**Gymnopédie No.1**(Erik Satie 作曲,演奏:Kevin MacLeod / incompetech.com)
-  - 授权:[Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)
-  - 文件:`public/bgm/gymnopedie-no1.mp3`
-  - "Erik Satie: Gymnopedie No 1" by Kevin MacLeod is licensed under a Creative Commons Attribution license.
+The in-game recording of *Gymnopédie No. 1* is performed by Kevin MacLeod and licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
